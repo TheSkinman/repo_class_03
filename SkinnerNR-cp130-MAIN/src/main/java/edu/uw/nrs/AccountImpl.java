@@ -49,7 +49,7 @@ public class AccountImpl implements Account {
 	@Override
 	public void setName(String acctName) throws AccountException {
 		if (isBlank(acctName) || acctName.length() < 8) {
-			throw new AccountException("Account Name can not be NULL or blank.");
+			throw new AccountException("Account Name can not be NULL, or less that 8 characters.");
 		}
 		name = acctName;
 	}

@@ -15,7 +15,7 @@
   <bean id="CreditCard" class="edu.uw.nrs.CreditCardImpl" scope="prototype"/>
 
   <!-- Bean implementing edu.uw.ext.framework.account.Account -->
-  <bean id="Account" class="edu.uw.nrs.AccountImpl" scope="prototype"/>
+  <bean id="Account" class="edu.uw.nrs.AccountImplx" scope="prototype"/>
 
   <!-- Bean implementing edu.uw.ext.framework.account.AccountManagerFactory -->
   <bean id="AccountManagerFactory" class="edu.uw.nrs.AccountManagerFactoryImpl"/>
