@@ -24,7 +24,7 @@ public class DaoFactoryImpl implements DaoFactory {
 	@Override
 	public AccountDao getAccountDao() throws DaoFactoryException {
 		// TODO Auto-generated method stub
-		return null;
+		return new AccountDaoImpl();
 	}
 
 }

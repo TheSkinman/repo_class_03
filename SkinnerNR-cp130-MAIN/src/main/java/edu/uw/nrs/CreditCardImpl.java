@@ -19,6 +19,11 @@ public class CreditCardImpl implements CreditCard {
 	private String type;
 
 	/**
+	 * Required for Java Beans
+	 */
+	public CreditCardImpl() {}
+	
+	/**
 	 * Gets the card issuer.
 	 * 
 	 * @return the card issuer

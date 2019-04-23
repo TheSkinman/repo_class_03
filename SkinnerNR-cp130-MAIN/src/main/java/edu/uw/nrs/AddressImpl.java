@@ -17,6 +17,8 @@ public class AddressImpl implements Address {
 	private String streetAddress;
 	private String zip;
 
+	public AddressImpl() {}
+	
 	/**
 	 * Gets the street address.
 	 * 
@@ -100,4 +102,14 @@ public class AddressImpl implements Address {
 	public void setZipCode(String zip) {
 		this.zip = zip;
 	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return String.format("%s%n%s, %s %s", streetAddress, city, state, zip);
+	}
+	
+
 }

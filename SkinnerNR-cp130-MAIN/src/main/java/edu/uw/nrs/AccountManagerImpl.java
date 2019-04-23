@@ -10,7 +10,9 @@ import org.slf4j.LoggerFactory;
 
 import edu.uw.ext.framework.account.Account;
 import edu.uw.ext.framework.account.AccountException;
+import edu.uw.ext.framework.account.AccountFactory;
 import edu.uw.ext.framework.account.AccountManager;
+import edu.uw.ext.framework.dao.AccountDao;
 
 /**
  * Interface for managing accounts. Provides interfaces for the basic account
@@ -21,7 +23,19 @@ import edu.uw.ext.framework.account.AccountManager;
  */
 public class AccountManagerImpl implements AccountManager {
 	private static Logger logger = LoggerFactory.getLogger(AccountManagerImpl.class.getName());
+	private static final String ENCODING = "ISO-8859-1";
+	private static final String  ALGORITHM = "SHA-256";
 
+	private AccountDao dao;
+	private AccountFactory acctfact;
+	
+	public AccountManagerImpl(AccountDao dao) {
+		this.dao = dao;
+		setup account factory
+	}
+	
+	
+	
 	/**
 	 * Used to persist an account.
 	 * 
@@ -32,7 +46,7 @@ public class AccountManagerImpl implements AccountManager {
 	 */
 	@Override
 	public void persist(Account account) throws AccountException {
-		// TODO Auto-generated method stub
+		dao.setAccount(account);
 
 	}
 
@@ -50,6 +64,7 @@ public class AccountManagerImpl implements AccountManager {
 	@Override
 	public Account getAccount(String accountName) throws AccountException {
 		// TODO Auto-generated method stub
+		//check for account manager in account
 		return null;
 	}
 
@@ -86,6 +101,11 @@ public class AccountManagerImpl implements AccountManager {
 	@Override
 	public Account createAccount(String accountName, String password, int balance) throws AccountException {
 		
+		try to get account / if null ok
+		
+		1. create accoun
+		2. register accMgr
+		3. presist
 		
 		return null;
 	}
@@ -105,9 +125,23 @@ public class AccountManagerImpl implements AccountManager {
 	@Override
 	public boolean validateLogin(String accountName, String password) throws AccountException {
 		// TODO Auto-generated method stub
+		1. get account
+		2.
+		valid = MessageDigest.isEqual(acct.getpasswordHash, passwordHash)
 		return false;
 	}
 
+	private byte[] hashPassword(String password) {
+		byte[] digest = null;
+		try {
+			final MessageDigest md = MessageDigest.getInstance(ALGORITHM);
+			md.update(password.getBytes(ENCODING));
+			digest = md.digest();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		return digest;
+	}
 	/**
 	 * Release any resources used by the AccountManager implementation. Once closed
 	 * further operations on the AccountManager may fail.
@@ -117,20 +151,8 @@ public class AccountManagerImpl implements AccountManager {
 	 */
 	@Override
 	public void close() throws AccountException {
-		// TODO Auto-generated method stub
-
-	}
-
-	private byte[] hashPassword(String password) {
-		byte[] digest = null;
-		try {
-			MessageDigest md = MessageDigest.getInstance("MD5");
-			md.update(password.getBytes());
-			digest = md.digest();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-		return digest;
+		dao.close();
+		dao = null;
 	}
 
 }

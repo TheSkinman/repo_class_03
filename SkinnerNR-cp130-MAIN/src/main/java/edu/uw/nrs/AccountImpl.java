@@ -17,6 +17,8 @@ import edu.uw.ext.framework.order.Order;
  */
 @SuppressWarnings("serial")
 public class AccountImpl implements Account {
+	private static final int MIN_ACCT_BALANCE = 100_000;
+	private static final int MIN_ACCT_NAME_LENGTH = 8;
 	private String name;
 	private byte[] passwordHash;
 	private int balance;
@@ -27,6 +29,11 @@ public class AccountImpl implements Account {
 	private CreditCardImpl creditCard;
 	private AccountManagerImpl accountManager;
 
+	/**
+	 * Required by JavaBean
+	 */
+	public AccountImpl() {}
+	
 	/**
 	 * Get the account name.
 	 * 
@@ -48,7 +55,7 @@ public class AccountImpl implements Account {
 	 */
 	@Override
 	public void setName(String acctName) throws AccountException {
-		if (isBlank(acctName) || acctName.length() < 8) {
+		if (isBlank(acctName) || acctName.length() < MIN_ACCT_NAME_LENGTH) {
 			throw new AccountException("Account Name can not be NULL, or less that 8 characters.");
 		}
 		name = acctName;
@@ -61,6 +68,8 @@ public class AccountImpl implements Account {
 	 */
 	@Override
 	public byte[] getPasswordHash() {
+		
+//		return a copy not the original
 		return passwordHash;
 	}
 
@@ -73,6 +82,8 @@ public class AccountImpl implements Account {
 	@Override
 	public void setPasswordHash(byte[] passwordHash) {
 		this.passwordHash = passwordHash;
+		
+//		make copy to store
 	}
 
 	/**
@@ -214,6 +225,8 @@ public class AccountImpl implements Account {
 	public void registerAccountManager(AccountManager m) {
 		if(accountManager == null) {
 			accountManager = (AccountManagerImpl) m;
+		} else {
+//			log tha that it has been set
 		}
 	}
 
@@ -227,6 +240,12 @@ public class AccountImpl implements Account {
 	 */
 	@Override
 	public void reflectOrder(Order order, int executionPrice) {
+//		try {
+//			balance += order.valueOfOrder(executionPrice);
+//			if (acctMgr !=null) {
+//				accmgr.presist(this)
+//			}
+//		} catch final AccountEx
 
 	}
 }
