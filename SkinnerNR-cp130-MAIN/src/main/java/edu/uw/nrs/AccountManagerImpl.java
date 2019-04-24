@@ -1,5 +1,6 @@
 package edu.uw.nrs;
 
+import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -31,7 +32,7 @@ public class AccountManagerImpl implements AccountManager {
 	
 	public AccountManagerImpl(AccountDao dao) {
 		this.dao = dao;
-		setup account factory
+//		setup account factory
 	}
 	
 	
@@ -47,7 +48,6 @@ public class AccountManagerImpl implements AccountManager {
 	@Override
 	public void persist(Account account) throws AccountException {
 		dao.setAccount(account);
-
 	}
 
 	/**
@@ -63,9 +63,12 @@ public class AccountManagerImpl implements AccountManager {
 	 */
 	@Override
 	public Account getAccount(String accountName) throws AccountException {
-		// TODO Auto-generated method stub
-		//check for account manager in account
-		return null;
+		Account account = dao.getAccount(accountName);
+		if (account == null) {
+			return null;
+		}
+		account.registerAccountManager(this);
+		return account;
 	}
 
 	/**
@@ -79,8 +82,7 @@ public class AccountManagerImpl implements AccountManager {
 	 */
 	@Override
 	public void deleteAccount(String accountName) throws AccountException {
-		// TODO Auto-generated method stub
-
+		dao.deleteAccount(accountName);
 	}
 
 	/**
@@ -100,12 +102,16 @@ public class AccountManagerImpl implements AccountManager {
 	 */
 	@Override
 	public Account createAccount(String accountName, String password, int balance) throws AccountException {
+		AccountFactoryImpl acctFact = new AccountFactoryImpl();
 		
-		try to get account / if null ok
+		Account account = dao.getAccount(accountName);
+		if (account != null) {
+			throw new AccountException("The account \"" + accountName + "\" already exists. unable to create account.");
+		}
 		
-		1. create accoun
-		2. register accMgr
-		3. presist
+		account = acctFact.newAccount(accountName, hashPassword(password), balance);
+		account.registerAccountManager(this);
+		dao.setAccount(account);
 		
 		return null;
 	}
@@ -124,21 +130,26 @@ public class AccountManagerImpl implements AccountManager {
 	 */
 	@Override
 	public boolean validateLogin(String accountName, String password) throws AccountException {
-		// TODO Auto-generated method stub
-		1. get account
-		2.
-		valid = MessageDigest.isEqual(acct.getpasswordHash, passwordHash)
-		return false;
+		Account account = dao.getAccount(accountName);
+		if (account == null) {
+			logger.info("Account \"" + accountName + "\" was not located.");
+			return false;
+		}
+		
+		boolean valid = MessageDigest.isEqual(account.getPasswordHash(), hashPassword(password));
+		return valid;
 	}
 
-	private byte[] hashPassword(String password) {
+	private byte[] hashPassword(String password) throws AccountException {
 		byte[] digest = null;
 		try {
 			final MessageDigest md = MessageDigest.getInstance(ALGORITHM);
 			md.update(password.getBytes(ENCODING));
 			digest = md.digest();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+		} catch (NoSuchAlgorithmException ex) {
+			throw new AccountException("Cannot use the \"" + ALGORITHM + "\" algorithm.", ex);
+		} catch (UnsupportedEncodingException ex) {
+			throw new AccountException("The \"" + ENCODING + "\" encoding is not supported.", ex);
 		}
 		return digest;
 	}

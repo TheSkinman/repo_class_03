@@ -15,7 +15,7 @@ import edu.uw.ext.framework.account.AccountFactory;
  *
  */
 public class AccountFactoryImpl implements AccountFactory {
-	private static final Logger log = LoggerFactory.getLogger(AccountFactoryImpl.class);
+	private static final Logger log = LoggerFactory.getLogger(AccountFactoryImpl.class.getName());
 	
 	/**
 	 * Instantiates a new account instance.
@@ -31,22 +31,11 @@ public class AccountFactoryImpl implements AccountFactory {
 	 */
 	@Override
 	public Account newAccount(String accountName, byte[] hashedPassword, int initialBalance) {
-		AccountImpl account = new AccountImpl();
 		try {
-			account.setName(accountName);
+			return new AccountImpl(accountName, hashedPassword, initialBalance);
 		} catch (AccountException ex) {
-			log.error("Account name violation, it must be a minimum of 8 characters. Unable to generate an account.", ex);
+			log.error("Unable to create the account.", ex);
 			return null;
 		}
-		
-		if (initialBalance < 100000) {
-			log.error("Account initial balance violation, it must be 100000 pennies or more. Unable to generate an account.");
-			return null;
-		}
-		
-		account.setPasswordHash(hashedPassword);
-		account.setBalance(initialBalance);
-		
-		return account;
 	}
 }

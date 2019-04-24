@@ -2,6 +2,11 @@ package edu.uw.nrs;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
+import java.util.Arrays;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import edu.uw.ext.framework.account.Account;
 import edu.uw.ext.framework.account.AccountException;
 import edu.uw.ext.framework.account.AccountManager;
@@ -17,6 +22,7 @@ import edu.uw.ext.framework.order.Order;
  */
 @SuppressWarnings("serial")
 public class AccountImpl implements Account {
+	private static Logger logger = LoggerFactory.getLogger(AccountImpl.class.getName());
 	private static final int MIN_ACCT_BALANCE = 100_000;
 	private static final int MIN_ACCT_NAME_LENGTH = 8;
 	private String name;
@@ -27,13 +33,29 @@ public class AccountImpl implements Account {
 	private String phone;
 	private String email;
 	private CreditCardImpl creditCard;
-	private AccountManagerImpl accountManager;
+	private AccountManager accountManager;
 
 	/**
 	 * Required by JavaBean
 	 */
-	public AccountImpl() {}
-	
+	public AccountImpl() {
+	}
+
+	public AccountImpl(final String acctName, final byte[] passwordHash, final int balance) throws AccountException {
+		if (isBlank(acctName) || acctName.length() < MIN_ACCT_NAME_LENGTH) {
+			throw new AccountException("Account Name can not be NULL, or less that 8 characters.");
+		}
+
+		if (balance < MIN_ACCT_BALANCE) {
+			throw new AccountException(
+					"Account initial balance violation, it must be 100000 pennies or more. Unable to generate an account.");
+		}
+
+		name = acctName;
+		this.balance = balance;
+		this.passwordHash = passwordHash;
+	}
+
 	/**
 	 * Get the account name.
 	 * 
@@ -68,22 +90,18 @@ public class AccountImpl implements Account {
 	 */
 	@Override
 	public byte[] getPasswordHash() {
-		
-//		return a copy not the original
-		return passwordHash;
+		return Arrays.copyOf(passwordHash, passwordHash.length);
 	}
 
 	/**
 	 * Sets the hashed password.
 	 * 
 	 * @param passwordHash
-	 *            the value to be st for the password hash
+	 *            the value to be set for the password hash
 	 */
 	@Override
 	public void setPasswordHash(byte[] passwordHash) {
-		this.passwordHash = passwordHash;
-		
-//		make copy to store
+		this.passwordHash = Arrays.copyOf(passwordHash, passwordHash.length);
 	}
 
 	/**
@@ -223,10 +241,10 @@ public class AccountImpl implements Account {
 	 */
 	@Override
 	public void registerAccountManager(AccountManager m) {
-		if(accountManager == null) {
+		if (accountManager == null) {
 			accountManager = (AccountManagerImpl) m;
 		} else {
-//			log tha that it has been set
+			logger.warn("AccountManager has previously been set on this account.");
 		}
 	}
 
@@ -240,12 +258,13 @@ public class AccountImpl implements Account {
 	 */
 	@Override
 	public void reflectOrder(Order order, int executionPrice) {
-//		try {
-//			balance += order.valueOfOrder(executionPrice);
-//			if (acctMgr !=null) {
-//				accmgr.presist(this)
-//			}
-//		} catch final AccountEx
-
+		try {
+			balance += order.valueOfOrder(executionPrice);
+			if (accountManager != null) {
+				accountManager.persist(this);
+			}
+		} catch (final AccountException ex) {
+			logger.error("Unable to persist the account.", ex);
+		}
 	}
 }

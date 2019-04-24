@@ -25,7 +25,7 @@ import edu.uw.ext.framework.dao.AccountDao;
  *
  */
 public class AccountDaoImpl implements AccountDao {
-	private static final Logger log = LoggerFactory.getLogger(AccountDaoImpl.class);
+	private static final Logger log = LoggerFactory.getLogger(AccountDaoImpl.class.getName());
 
 	private static final String ACCT_DIR = "target/accounts";
 
@@ -41,7 +41,7 @@ public class AccountDaoImpl implements AccountDao {
 		final String accountDirectory = ACCT_DIR + "/" + accountName;
 		File inFile = new File(accountDirectory);
 		if(!inFile.exists()) {
-			log.error("Account fo {} does not exist.", accountName);
+			log.error("Account for \"{}\" does not exist.", accountName);
 			return null;
 		}
 		
@@ -50,7 +50,7 @@ public class AccountDaoImpl implements AccountDao {
 		AccountImpl account = null;
 
 		// Load the "creditCard" file
-		inFile = new File(accountDirectory, accountName + "_creditCard.dat");
+		inFile = new File(accountDirectory, accountName + "_creditcard.dat");
 		if (inFile.exists()) {
 			creditCard = new CreditCardImpl();
 			if (null != creditCard) {
@@ -83,7 +83,6 @@ public class AccountDaoImpl implements AccountDao {
 				}
 			}
 		}
-
 
 		// Load the "account" file
 		inFile = new File(accountDirectory, accountName + "_account.dat");
@@ -141,7 +140,6 @@ public class AccountDaoImpl implements AccountDao {
 				for(byte b : account.getPasswordHash()) {
 					dout.write(b);
 				}
-				//dout.write(account.getPasswordHash(), 0, account.getPasswordHash().length -1);
 			}
 			dout.writeInt(account.getBalance());
 			dout.writeUTF(safeWrite(account.getFullName()));
@@ -178,7 +176,7 @@ public class AccountDaoImpl implements AccountDao {
 
 		// Save the "creditCard" file
 		final CreditCardImpl creditCard = (CreditCardImpl) account.getCreditCard();
-		outFile = new File(accountDirectory, account.getName() + "_creditCard.dat");
+		outFile = new File(accountDirectory, account.getName() + "_creditcard.dat");
 		if (null != creditCard) {
 			try (DataOutputStream dout = new DataOutputStream(new FileOutputStream(outFile))) {
 				dout.writeUTF(safeWrite(creditCard.getAccountNumber()));
