@@ -1,4 +1,4 @@
-package edu.uw.nrs;
+package edu.uw.nrs.account;
 
 import edu.uw.ext.framework.account.AccountManager;
 import edu.uw.ext.framework.account.AccountManagerFactory;

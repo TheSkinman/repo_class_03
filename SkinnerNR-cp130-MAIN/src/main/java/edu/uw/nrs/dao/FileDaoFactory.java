@@ -1,4 +1,4 @@
-package edu.uw.nrs;
+package edu.uw.nrs.dao;
 
 import edu.uw.ext.framework.dao.AccountDao;
 import edu.uw.ext.framework.dao.DaoFactory;
@@ -11,7 +11,7 @@ import edu.uw.ext.framework.dao.DaoFactoryException;
  * @author Norman Skinner (skinman@uw.edu)
  *
  */
-public class DaoFactoryImpl implements DaoFactory {
+public class FileDaoFactory implements DaoFactory {
 
 	/**
 	 * Instantiates a new AccountDao object.
@@ -23,8 +23,6 @@ public class DaoFactoryImpl implements DaoFactory {
 	 */
 	@Override
 	public AccountDao getAccountDao() throws DaoFactoryException {
-		// TODO Auto-generated method stub
-		return new AccountDaoImpl();
+		return new FileAccountDao();
 	}
-
 }

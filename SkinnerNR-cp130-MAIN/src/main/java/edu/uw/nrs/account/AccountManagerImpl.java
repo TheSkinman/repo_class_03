@@ -1,10 +1,8 @@
-package edu.uw.nrs;
+package edu.uw.nrs.account;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
-import javax.xml.bind.DatatypeConverter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,18 +23,16 @@ import edu.uw.ext.framework.dao.AccountDao;
 public class AccountManagerImpl implements AccountManager {
 	private static Logger logger = LoggerFactory.getLogger(AccountManagerImpl.class.getName());
 	private static final String ENCODING = "ISO-8859-1";
-	private static final String  ALGORITHM = "SHA-256";
+	private static final String ALGORITHM = "SHA-256";
 
 	private AccountDao dao;
-	private AccountFactory acctfact;
-	
+	private AccountFactory accountFactory;
+
 	public AccountManagerImpl(AccountDao dao) {
 		this.dao = dao;
-//		setup account factory
+		this.accountFactory = new AccountFactoryImpl();
 	}
-	
-	
-	
+
 	/**
 	 * Used to persist an account.
 	 * 
@@ -102,18 +98,15 @@ public class AccountManagerImpl implements AccountManager {
 	 */
 	@Override
 	public Account createAccount(String accountName, String password, int balance) throws AccountException {
-		AccountFactoryImpl acctFact = new AccountFactoryImpl();
-		
 		Account account = dao.getAccount(accountName);
 		if (account != null) {
 			throw new AccountException("The account \"" + accountName + "\" already exists. unable to create account.");
 		}
-		
-		account = acctFact.newAccount(accountName, hashPassword(password), balance);
+		account = accountFactory.newAccount(accountName, hashPassword(password), balance);
 		account.registerAccountManager(this);
 		dao.setAccount(account);
-		
-		return null;
+
+		return account;
 	}
 
 	/**
@@ -135,7 +128,7 @@ public class AccountManagerImpl implements AccountManager {
 			logger.info("Account \"" + accountName + "\" was not located.");
 			return false;
 		}
-		
+
 		boolean valid = MessageDigest.isEqual(account.getPasswordHash(), hashPassword(password));
 		return valid;
 	}
@@ -153,6 +146,7 @@ public class AccountManagerImpl implements AccountManager {
 		}
 		return digest;
 	}
+
 	/**
 	 * Release any resources used by the AccountManager implementation. Once closed
 	 * further operations on the AccountManager may fail.

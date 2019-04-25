@@ -1,4 +1,4 @@
-package edu.uw.nrs;
+package edu.uw.nrs.account;
 
 import edu.uw.ext.framework.account.CreditCard;
 
@@ -21,8 +21,9 @@ public class CreditCardImpl implements CreditCard {
 	/**
 	 * Required for Java Beans
 	 */
-	public CreditCardImpl() {}
-	
+	public CreditCardImpl() {
+	}
+
 	/**
 	 * Gets the card issuer.
 	 * 

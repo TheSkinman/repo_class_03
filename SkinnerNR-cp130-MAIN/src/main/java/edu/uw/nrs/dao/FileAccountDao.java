@@ -1,4 +1,4 @@
-package edu.uw.nrs;
+package edu.uw.nrs.dao;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -7,7 +7,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.FileSystemException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +14,9 @@ import org.slf4j.LoggerFactory;
 import edu.uw.ext.framework.account.Account;
 import edu.uw.ext.framework.account.AccountException;
 import edu.uw.ext.framework.dao.AccountDao;
+import edu.uw.nrs.account.AccountImpl;
+import edu.uw.nrs.account.AddressImpl;
+import edu.uw.nrs.account.CreditCardImpl;
 
 /**
  * Defines the methods needed to store and load accounts from a persistent
@@ -24,8 +26,8 @@ import edu.uw.ext.framework.dao.AccountDao;
  * @author Norman Skinner (skinman@uw.edu)
  *
  */
-public class AccountDaoImpl implements AccountDao {
-	private static final Logger log = LoggerFactory.getLogger(AccountDaoImpl.class.getName());
+public class FileAccountDao implements AccountDao {
+	private static final Logger log = LoggerFactory.getLogger(FileAccountDao.class.getName());
 
 	private static final String ACCT_DIR = "target/accounts";
 
@@ -40,11 +42,11 @@ public class AccountDaoImpl implements AccountDao {
 	public Account getAccount(String accountName) {
 		final String accountDirectory = ACCT_DIR + "/" + accountName;
 		File inFile = new File(accountDirectory);
-		if(!inFile.exists()) {
+		if (!inFile.exists()) {
 			log.error("Account for \"{}\" does not exist.", accountName);
 			return null;
 		}
-		
+
 		CreditCardImpl creditCard = null;
 		AddressImpl address = null;
 		AccountImpl account = null;
@@ -112,7 +114,7 @@ public class AccountDaoImpl implements AccountDao {
 		}
 		account.setAddress(address);
 		account.setCreditCard(creditCard);
-		
+
 		return account;
 	}
 
@@ -137,7 +139,7 @@ public class AccountDaoImpl implements AccountDao {
 				dout.writeInt(-1);
 			} else {
 				dout.writeInt(account.getPasswordHash().length);
-				for(byte b : account.getPasswordHash()) {
+				for (byte b : account.getPasswordHash()) {
 					dout.write(b);
 				}
 			}
@@ -257,11 +259,11 @@ public class AccountDaoImpl implements AccountDao {
 		File[] allContents = directory.listFiles();
 		if (allContents != null) {
 			for (File file : allContents) {
-	            if(file.isDirectory()) {
-	            	deleteDirectory(file);
-	            } else {
-	            	file.delete();
-	            }
+				if (file.isDirectory()) {
+					deleteDirectory(file);
+				} else {
+					file.delete();
+				}
 			}
 		}
 		return directory.delete();

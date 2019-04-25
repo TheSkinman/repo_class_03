@@ -70,8 +70,19 @@
       <artifactId>cp130-framework</artifactId>
       <version>1.0</version>
       <type>test-jar</type>
-      <!-- <scope>test</scope> -->
+      <scope>test</scope>
     </dependency>
+	<!-- Jackson Json -->
+	<dependency>
+	    <groupId>com.fasterxml.jackson.core</groupId>
+	    <artifactId>jackson-databind</artifactId>
+	    <version>2.9.7</version>
+	</dependency>
+	<dependency>
+	    <groupId>com.fasterxml.jackson.core</groupId>
+	    <artifactId>jackson-annotations</artifactId>
+	    <version>2.9.7</version>
+	</dependency>
 	<!-- Logging -->
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -105,6 +116,7 @@
           <systemPropertyVariables>
             <java.util.logging.config.file>src/main/resources/logging.properties</java.util.logging.config.file>
           </systemPropertyVariables>
+          <printSummary>true</printSummary>
         </configuration>
       </plugin>
 

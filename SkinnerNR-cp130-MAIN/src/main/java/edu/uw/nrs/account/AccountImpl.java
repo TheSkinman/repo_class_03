@@ -1,4 +1,4 @@
-package edu.uw.nrs;
+package edu.uw.nrs.account;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 

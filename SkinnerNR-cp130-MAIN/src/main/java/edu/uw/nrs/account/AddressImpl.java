@@ -1,4 +1,4 @@
-package edu.uw.nrs;
+package edu.uw.nrs.account;
 
 import edu.uw.ext.framework.account.Address;
 
@@ -17,8 +17,9 @@ public class AddressImpl implements Address {
 	private String streetAddress;
 	private String zip;
 
-	public AddressImpl() {}
-	
+	public AddressImpl() {
+	}
+
 	/**
 	 * Gets the street address.
 	 * 
@@ -103,13 +104,14 @@ public class AddressImpl implements Address {
 		this.zip = zip;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
 	public String toString() {
 		return String.format("%s%n%s, %s %s", streetAddress, city, state, zip);
 	}
-	
 
 }
