@@ -1,20 +1,13 @@
 package edu.uw.nrs.dao;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -41,6 +34,17 @@ public class JsonAccountDao implements AccountDao {
 	private static final Logger log = LoggerFactory.getLogger(JsonAccountDao.class.getName());
 
 	private static final String ACCT_DIR = "target/accounts";
+	
+	private final ObjectMapper mapper;
+	
+	public JsonAccountDao() {
+		final SimpleModule module = new SimpleModule();
+		module.addAbstractTypeMapping(Account.class, AccountImpl.class);
+		module.addAbstractTypeMapping(Address.class, AddressImpl.class);
+		module.addAbstractTypeMapping(CreditCard.class, CreditCardImpl.class);
+		mapper = new ObjectMapper();
+		mapper.registerModule(module);
+	}
 
 	/**
 	 * Lookup an account in based on account name.
@@ -52,34 +56,25 @@ public class JsonAccountDao implements AccountDao {
 	@Override
 	public Account getAccount(String accountName) {
 
+		AccountImpl account = null;
 		File inFile = new File(ACCT_DIR, accountName + ".json");
 		if (!inFile.exists()) {
 			log.error("Account for \"{}\" does not exist.", accountName);
 			return null;
 		}
-
-		SimpleModule module = new SimpleModule();
-		module.addAbstractTypeMapping(Account.class, AccountImpl.class);
-		module.addAbstractTypeMapping(Address.class, AddressImpl.class);
-		module.addAbstractTypeMapping(CreditCard.class, CreditCardImpl.class);
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.registerModule(module);
 		
-		AccountImpl account = null;
 		try {
 			account = mapper.readValue(inFile, AccountImpl.class);
+			return account;
 		} catch (JsonParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Unable to parse the json while reading the account.", e);
 		} catch (JsonMappingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Unable to map the json while reading the account.", e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Problem reading the account from the file.", e);
 		}
 
-		return account;
+		return null;
 	}
 
 	/**
@@ -93,31 +88,22 @@ public class JsonAccountDao implements AccountDao {
 	@Override
 	public void setAccount(Account account) throws AccountException {
 
-		// Save the "account" file
-		File outFile = new File(ACCT_DIR, account.getName() + ".json");
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 		try {
+			if (!(new File(ACCT_DIR).exists())) {
+				prepareAccountDirectory(ACCT_DIR);
+			}
+		
+			mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+			File outFile = new File(ACCT_DIR, account.getName() + ".json");
 			AccountImpl accountOut = (AccountImpl) account;
 			mapper.writeValue(outFile, accountOut);
 		} catch (JsonGenerationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Issue encountered generating the json while writing the account.", e);
 		} catch (JsonMappingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Unable to map the json while writing the account.", e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Problem writing the account from the file.", e);
 		}
-		// } catch (FileNotFoundException ex) {
-		// log.error("Cannot Open the Output File", ex);
-		// throw new AccountException("Cannot Open the Output File");
-		// } catch (IOException ex) {
-		// log.error("IO Exception saving account data", ex);
-		// throw new AccountException("Cannot Open the Output File");
-		// }
-
 	}
 
 	private void prepareAccountDirectory(final String accountDirectory) {
@@ -168,15 +154,7 @@ public class JsonAccountDao implements AccountDao {
 		// no-op
 	}
 
-	private String safeWrite(final String input) {
-		return input == null ? "<null>" : input;
-	}
-
-	private String safeRead(final String output) {
-		return output.equals("<null>") ? null : output;
-	}
-
-	boolean deleteDirectory(File directory) {
+	private boolean deleteDirectory(File directory) {
 		File[] allContents = directory.listFiles();
 		if (allContents != null) {
 			for (File file : allContents) {
