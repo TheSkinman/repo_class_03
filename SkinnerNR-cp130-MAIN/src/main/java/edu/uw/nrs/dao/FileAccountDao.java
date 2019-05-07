@@ -57,11 +57,11 @@ public class FileAccountDao implements AccountDao {
 			creditCard = new CreditCardImpl();
 			if (null != creditCard) {
 				try (DataInputStream din = new DataInputStream(new FileInputStream(inFile))) {
-					creditCard.setAccountNumber(safeRead(din.readUTF()));
-					creditCard.setExpirationDate(safeRead(din.readUTF()));
-					creditCard.setHolder(safeRead(din.readUTF()));
-					creditCard.setIssuer(safeRead(din.readUTF()));
-					creditCard.setType(safeRead(din.readUTF()));
+					creditCard.setAccountNumber(safeString(din.readUTF()));
+					creditCard.setExpirationDate(safeString(din.readUTF()));
+					creditCard.setHolder(safeString(din.readUTF()));
+					creditCard.setIssuer(safeString(din.readUTF()));
+					creditCard.setType(safeString(din.readUTF()));
 				} catch (IOException ex) {
 					log.error("IO Exception saving credit card data", ex);
 					creditCard = null;
@@ -75,10 +75,10 @@ public class FileAccountDao implements AccountDao {
 			address = new AddressImpl();
 			if (null != address) {
 				try (DataInputStream din = new DataInputStream(new FileInputStream(inFile))) {
-					address.setCity(safeRead(din.readUTF()));
-					address.setState(safeRead(din.readUTF()));
-					address.setStreetAddress(safeRead(din.readUTF()));
-					address.setZipCode(safeRead(din.readUTF()));
+					address.setCity(safeString(din.readUTF()));
+					address.setState(safeString(din.readUTF()));
+					address.setStreetAddress(safeString(din.readUTF()));
+					address.setZipCode(safeString(din.readUTF()));
 				} catch (IOException ex) {
 					log.error("IO Exception saving address data", ex);
 					address = null;
@@ -99,10 +99,10 @@ public class FileAccountDao implements AccountDao {
 						account.setPasswordHash(readPassword);
 					}
 					account.setBalance(din.readInt());
-					account.setFullName(safeRead(din.readUTF()));
-					account.setPhone(safeRead(din.readUTF()));
-					account.setEmail(safeRead(din.readUTF()));
-					account.setName(safeRead(din.readUTF()));
+					account.setFullName(safeString(din.readUTF()));
+					account.setPhone(safeString(din.readUTF()));
+					account.setEmail(safeString(din.readUTF()));
+					account.setName(safeString(din.readUTF()));
 				} catch (AccountException ex) {
 					log.error("IO Exception saving account data", ex);
 					account = null;
@@ -144,10 +144,10 @@ public class FileAccountDao implements AccountDao {
 				}
 			}
 			dout.writeInt(account.getBalance());
-			dout.writeUTF(safeWrite(account.getFullName()));
-			dout.writeUTF(safeWrite(account.getPhone()));
-			dout.writeUTF(safeWrite(account.getEmail()));
-			dout.writeUTF(safeWrite(account.getName()));
+			dout.writeUTF(safeString(account.getFullName()));
+			dout.writeUTF(safeString(account.getPhone()));
+			dout.writeUTF(safeString(account.getEmail()));
+			dout.writeUTF(safeString(account.getName()));
 		} catch (FileNotFoundException ex) {
 			log.error("Cannot Open the Output File", ex);
 			throw new AccountException("Cannot Open the Output File");
@@ -161,10 +161,10 @@ public class FileAccountDao implements AccountDao {
 		outFile = new File(accountDirectory, account.getName() + "_address.dat");
 		if (null != address) {
 			try (DataOutputStream dout = new DataOutputStream(new FileOutputStream(outFile))) {
-				dout.writeUTF(safeWrite(address.getCity()));
-				dout.writeUTF(safeWrite(address.getState()));
-				dout.writeUTF(safeWrite(address.getStreetAddress()));
-				dout.writeUTF(safeWrite(address.getZipCode()));
+				dout.writeUTF(safeString(address.getCity()));
+				dout.writeUTF(safeString(address.getState()));
+				dout.writeUTF(safeString(address.getStreetAddress()));
+				dout.writeUTF(safeString(address.getZipCode()));
 			} catch (FileNotFoundException ex) {
 				log.error("Cannot Open the Output File", ex);
 				throw new AccountException("Cannot Open the Output File");
@@ -181,11 +181,11 @@ public class FileAccountDao implements AccountDao {
 		outFile = new File(accountDirectory, account.getName() + "_creditcard.dat");
 		if (null != creditCard) {
 			try (DataOutputStream dout = new DataOutputStream(new FileOutputStream(outFile))) {
-				dout.writeUTF(safeWrite(creditCard.getAccountNumber()));
-				dout.writeUTF(safeWrite(creditCard.getExpirationDate()));
-				dout.writeUTF(safeWrite(creditCard.getHolder()));
-				dout.writeUTF(safeWrite(creditCard.getIssuer()));
-				dout.writeUTF(safeWrite(creditCard.getType()));
+				dout.writeUTF(safeString(creditCard.getAccountNumber()));
+				dout.writeUTF(safeString(creditCard.getExpirationDate()));
+				dout.writeUTF(safeString(creditCard.getHolder()));
+				dout.writeUTF(safeString(creditCard.getIssuer()));
+				dout.writeUTF(safeString(creditCard.getType()));
 			} catch (FileNotFoundException ex) {
 				log.error("Cannot Open the Output File", ex);
 				throw new AccountException("Cannot Open the Output File");
@@ -247,12 +247,15 @@ public class FileAccountDao implements AccountDao {
 		// no-op
 	}
 
-	private String safeWrite(final String input) {
-		return input == null ? "<null>" : input;
-	}
-
-	private String safeRead(final String output) {
-		return output.equals("<null>") ? null : output;
+	private String safeString(final String string) {
+		// Convert null to a writable null.
+		if (string == null) { return "<null>"; }
+		 
+		// Convert read null to real null.
+		if (string.equals("<null>")) { return null; }
+		 
+		// Just return the string as is.
+		return string;
 	}
 
 	boolean deleteDirectory(File directory) {
