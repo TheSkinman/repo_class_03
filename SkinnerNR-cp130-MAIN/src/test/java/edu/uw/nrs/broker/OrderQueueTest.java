@@ -38,8 +38,6 @@ public class OrderQueueTest extends AbstractOrderQueueTest {
          * This needs to be an instance of your OrderQueue and Comparator.   *
          *********************************************************************/
         final Comparator<StopBuyOrder> ascending = Comparator.comparing(StopBuyOrder::getPrice).thenComparing(StopBuyOrder::compareTo);
-    	// listDevs.sort((Developer o1, Developer o2)->o1.getAge()-o2.getAge());
-//        final Comparator<StopBuyOrder> ascending = (x, y) -> x.getPrice()-y.getPrice();
         return new OrderQueueImpl<>(0, filter, ascending);
     }
 

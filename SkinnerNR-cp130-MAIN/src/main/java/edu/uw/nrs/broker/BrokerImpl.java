@@ -2,10 +2,15 @@ package edu.uw.nrs.broker;
 
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.function.Consumer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.uw.ext.framework.exchange.ExchangeEvent;
 import edu.uw.ext.framework.exchange.ExchangeListener;
 import edu.uw.ext.framework.account.Account;
+import edu.uw.ext.framework.account.AccountException;
 import edu.uw.ext.framework.account.AccountManager;
 import edu.uw.ext.framework.broker.Broker;
 import edu.uw.ext.framework.broker.BrokerException;
@@ -27,6 +32,7 @@ import edu.uw.ext.framework.order.StopSellOrder;
  *
  */
 public class BrokerImpl implements Broker, ExchangeListener {
+	private static final Logger log = LoggerFactory.getLogger(BrokerImpl.class.getName());
 
 	/** The market order queue. */
 	protected OrderQueue<Boolean, Order> marketOrders;
@@ -39,9 +45,8 @@ public class BrokerImpl implements Broker, ExchangeListener {
 
 	/** The stock exchange to be used by the broker */
 	private StockExchange exchg;
-	
+
 	private HashMap<String, OrderManagerImpl> orderManagers;
-	
 
 	/**
 	 * Constructor for sub classes
@@ -70,14 +75,16 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 *            the stock exchange to be used by the broker
 	 */
 	public BrokerImpl(String brokerName, AccountManager acctMgr, StockExchange exchg) {
-		this.brokerName = brokerName;
-		this.acctMgr = acctMgr;
-		this.exchg = exchg;
-		
-		// create market
-		
-		
-		exchng.addExcgangeListner(this);
+		this(brokerName, exchg, acctMgr);
+
+		marketOrders = new OrderQueueImpl<Boolean, Order>(exchg.isOpen(), (i, o) -> i);
+		marketOrders.setOrderProcessor(this::executeOrder);
+
+		// Create the Order Managers
+		initializeOrderManagers();
+
+		// Add self to the exchange listeners
+		exchg.addExchangeListener(this);
 	}
 
 	/**
@@ -88,14 +95,11 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 *            the order to execute
 	 */
 	protected void executeOrder(Order order) {
-		//log if enabled
-		
-		//execute trade
-		
+		// log if enabled
+
+		// execute trade
+
 		// get account
-		
-		
-		
 
 	}
 
@@ -104,10 +108,21 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 * each stock. Only to be used during construction.
 	 */
 	protected final void initializeOrderManagers() {
+		orderManagers = new HashMap<>();
+		Consumer<StopBuyOrder> moveBuyToMarketOrderProcessor = (StopBuyOrder order) -> marketOrders.enqueue(order);
+		Consumer<StopSellOrder> moveSellToMarketOrderProcessor = (StopSellOrder order) -> marketOrders.enqueue(order);
 
 		// one consumer for all consumers for each
+		Consumer<? super StockQuote> addStockAction = (q) -> {
+			int pr = q.getPrice();
+		};
 		
-		
+		for (String stockTick : exchg.getTickers()) {
+			OrderManagerImpl orderManager = new OrderManagerImpl(stockTick, 0);
+			
+			orderManagers.put(stockTick, orderManager);
+		}
+
 	}
 
 	/**
@@ -123,21 +138,6 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	protected OrderManager createOrderManager(String ticker, int initialPrice) {
 		return null;
 	}
-	
-	
-	
-	
-	/*
-	 * 
-	 *                 EEEE   VVVV    EEEE   NNNN   TTTT    SSSSS
-	 *                  E V E N T S
-	 * 
-	 * 
-	 * 
-	 */
-	
-	
-	
 
 	/**
 	 * Upon the exchange opening sets the market dispatch filter threshold and
@@ -147,12 +147,16 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 *            the price change event
 	 */
 	@Override
-	public void priceChanged(ExchangeEvent event) {
-		// TODO Auto-generated method stub
-		log it changed 
-		get order manager
-		set threshold
+	public final synchronized void priceChanged(ExchangeEvent event) {
+		log.info("PRICE CHANGED");
 
+		// get order manager
+		OrderManager orderManager = orderManagers.get(event.getTicker());
+
+		// set threshold
+		if (orderManager != null) {
+			orderManager.adjustPrice(event.getPrice());
+		}
 	}
 
 	/**
@@ -164,10 +168,8 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public void exchangeOpened(ExchangeEvent event) {
-		// TODO Auto-generated method stub
-		log market open
-		set market threshold open to true
-
+		log.info("Market is now OPENED.");
+		marketOrders.setThreshold(true);
 	}
 
 	/**
@@ -178,9 +180,8 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public void exchangeClosed(ExchangeEvent event) {
-		// TODO Auto-generated method stub
-		log market closed
-		set market threshold open to false
+		log.info("Market is now CLOSED.");
+		marketOrders.setThreshold(false);
 	}
 
 	/**
@@ -208,11 +209,16 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public Account createAccount(String username, String password, int balance) throws BrokerException {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			return acctMgr.createAccount(username, password, balance);
+		} catch (AccountException e) {
+			log.error("An error was encountered creating the account:" + username);
+			throw new BrokerException("An error was encountered creating the account:" + username, e);
+		}
 	}
 
 	/**
+	 * Delete an account with the broker.
 	 * 
 	 * @param username
 	 *            the user or account name for the account
@@ -221,8 +227,13 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public void deleteAccount(String username) throws BrokerException {
-		// TODO Auto-generated method stub
-
+		try {
+			acctMgr.deleteAccount(username);
+			log.info("The following account was deleted: " + username);
+		} catch (AccountException e) {
+			log.error("An error was encountered deleting the account: " + username);
+			throw new BrokerException("An error was encountered deleting the account: " + username, e);
+		}
 	}
 
 	/**
@@ -239,8 +250,23 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public Account getAccount(String username, String password) throws BrokerException {
-		// TODO Auto-generated method stub
-		return null;
+		boolean isVerified = false;
+
+		try {
+			isVerified = acctMgr.validateLogin(username, password);
+		} catch (AccountException e) {
+			throw new BrokerException("Unable to verify access to the account.", e);
+		}
+		
+		if (!isVerified) {
+			throw new BrokerException("Invalid account or password.");
+		}
+
+		try {
+			return acctMgr.getAccount(username);
+		} catch (AccountException e) {
+			throw new BrokerException("Unable to get the account.", e);
+		}
 	}
 
 	/**
@@ -304,8 +330,7 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public Optional<StockQuote> requestQuote(String ticker) {
-		// TODO Auto-generated method stub
-		return null;
+		return exchg.getQuote(ticker);
 	}
 
 	/**
@@ -316,8 +341,19 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public void close() throws BrokerException {
-		// TODO Auto-generated method stub
+		// Closing the account manager
+		try {
+			acctMgr.close();
+		} catch (AccountException e) {
+			log.error("Encountered an error trying to close the Account Manager.", e);
+		}
 
+		// removing listener
+		exchg.removeExchangeListener(this);
+		
+		// Null-ing up some items
+		marketOrders = null;
+		orderManagers = null;
 	}
 
 }

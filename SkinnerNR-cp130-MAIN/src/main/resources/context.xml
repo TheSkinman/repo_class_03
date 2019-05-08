@@ -24,7 +24,7 @@
   <bean id="DaoFactory" class="edu.uw.nrs.dao.JsonDaoFactory"/>
 
   <!-- Bean implementing edu.uw.ext.framework.broker.BrokerFactory -->
-  <!-- <bean id="BrokerFactory" class="edu.uw.nrs.broker.BrokerFactoryImpl"/> -->
+  <bean id="BrokerFactory" class="edu.uw.nrs.broker.BrokerFactoryImpl"/>
 
 </beans>
 
