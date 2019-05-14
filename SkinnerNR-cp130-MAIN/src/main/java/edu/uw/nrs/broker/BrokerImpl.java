@@ -46,7 +46,7 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	/** The stock exchange to be used by the broker */
 	private StockExchange exchg;
 
-	private HashMap<String, OrderManagerImpl> orderManagers;
+	private HashMap<String, OrderManager> orderManagers;
 
 	/**
 	 * Constructor for sub classes
@@ -93,14 +93,30 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 * 
 	 * @param order
 	 *            the order to execute
+	 * @throws BrokerException
 	 */
 	protected void executeOrder(Order order) {
-		// log if enabled
+		int priceAdjust = 0;
+		if (exchg.isOpen()) {
+			log.info("Market is open for trade.");
+			
+			priceAdjust += exchg.executeTrade(order);
+		
 
-		// execute trade
-
-		// get account
-
+			try {
+				Account acct = acctMgr.getAccount(order.getAccountId());
+				int bal = acct.getBalance();
+				if (order.isBuyOrder()) {
+					bal -= priceAdjust;
+				} else {
+					bal += priceAdjust;
+				}
+				acct.setBalance(bal);
+				acctMgr.persist(acct);
+			} catch (AccountException e) {
+				log.error("Somethig went wrong. ", e);
+			}
+		}
 	}
 
 	/**
@@ -113,14 +129,18 @@ public class BrokerImpl implements Broker, ExchangeListener {
 		Consumer<StopSellOrder> moveSellToMarketOrderProcessor = (StopSellOrder order) -> marketOrders.enqueue(order);
 
 		// one consumer for all consumers for each
-		Consumer<? super StockQuote> addStockAction = (q) -> {
-			int pr = q.getPrice();
-		};
-		
-		for (String stockTick : exchg.getTickers()) {
-			OrderManagerImpl orderManager = new OrderManagerImpl(stockTick, 0);
-			
-			orderManagers.put(stockTick, orderManager);
+		for (String stkTick : exchg.getTickers()) {
+			Optional<StockQuote> q = exchg.getQuote(stkTick);
+			if (q.isPresent()) {
+				StockQuote quoteItem = q.get();
+				String stockTicker = quoteItem.getTicker();
+				int price = quoteItem.getPrice();
+				orderManagers.put(stockTicker, createOrderManager(stockTicker, price));
+				orderManagers.get(stockTicker).setBuyOrderProcessor(moveBuyToMarketOrderProcessor);
+				orderManagers.get(stockTicker).setSellOrderProcessor(moveSellToMarketOrderProcessor);
+			} else {
+				log.error("NULL = " + stkTick);
+			}
 		}
 
 	}
@@ -136,7 +156,7 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 * @return a new OrderManager for the specified stock
 	 */
 	protected OrderManager createOrderManager(String ticker, int initialPrice) {
-		return null;
+		return new OrderManagerImpl(ticker, initialPrice);
 	}
 
 	/**
@@ -257,7 +277,7 @@ public class BrokerImpl implements Broker, ExchangeListener {
 		} catch (AccountException e) {
 			throw new BrokerException("Unable to verify access to the account.", e);
 		}
-		
+
 		if (!isVerified) {
 			throw new BrokerException("Invalid account or password.");
 		}
@@ -277,8 +297,7 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public void placeOrder(MarketBuyOrder order) {
-		// TODO Auto-generated method stub
-
+		marketOrders.enqueue(order);
 	}
 
 	/**
@@ -289,8 +308,9 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public void placeOrder(MarketSellOrder order) {
-		// TODO Auto-generated method stub
-
+		marketOrders.enqueue(order);
+		
+		
 	}
 
 	/**
@@ -303,8 +323,9 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public void placeOrder(StopBuyOrder order) throws BrokerException {
-		// TODO Auto-generated method stub
-
+		String stockTicker = order.getStockTicker();
+		OrderManager orderManager = orderManagers.get(stockTicker);
+		orderManager.queueOrder(order);
 	}
 
 	/**
@@ -317,8 +338,9 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	 */
 	@Override
 	public void placeOrder(StopSellOrder order) throws BrokerException {
-		// TODO Auto-generated method stub
-
+		String stockTicker = order.getStockTicker();
+		OrderManager orderManager = orderManagers.get(stockTicker);
+		orderManager.queueOrder(order);
 	}
 
 	/**
@@ -350,7 +372,7 @@ public class BrokerImpl implements Broker, ExchangeListener {
 
 		// removing listener
 		exchg.removeExchangeListener(this);
-		
+
 		// Null-ing up some items
 		marketOrders = null;
 		orderManagers = null;
