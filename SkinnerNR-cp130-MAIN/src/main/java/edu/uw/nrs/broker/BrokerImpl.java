@@ -100,7 +100,7 @@ public class BrokerImpl implements Broker, ExchangeListener {
 		if (exchg.isOpen()) {
 			log.info("Market is open for trade.");
 			
-			priceAdjust += exchg.executeTrade(order);
+			priceAdjust += exchg.executeTrade(order) * order.getNumberOfShares();
 		
 
 			try {
