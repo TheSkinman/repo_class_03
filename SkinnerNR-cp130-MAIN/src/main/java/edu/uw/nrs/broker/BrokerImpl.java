@@ -99,20 +99,13 @@ public class BrokerImpl implements Broker, ExchangeListener {
 		int priceAdjust = 0;
 		if (exchg.isOpen()) {
 			log.info("Market is open for trade.");
-			
-			priceAdjust += exchg.executeTrade(order) * order.getNumberOfShares();
-		
+
+			priceAdjust = exchg.executeTrade(order);
 
 			try {
 				Account acct = acctMgr.getAccount(order.getAccountId());
-				int bal = acct.getBalance();
-				if (order.isBuyOrder()) {
-					bal -= priceAdjust;
-				} else {
-					bal += priceAdjust;
-				}
-				acct.setBalance(bal);
-				acctMgr.persist(acct);
+
+				acct.reflectOrder(order, priceAdjust);
 			} catch (AccountException e) {
 				log.error("Somethig went wrong. ", e);
 			}
@@ -292,8 +285,8 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	/**
 	 * Place an order with the broker.
 	 * 
-	 * @param the
-	 *            order being placed with the broker
+	 * @param order
+	 *            the order being placed with the broker
 	 */
 	@Override
 	public void placeOrder(MarketBuyOrder order) {
@@ -303,21 +296,20 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	/**
 	 * Place an order with the broker.
 	 * 
-	 * @param the
-	 *            order being placed with the broker
+	 * @param order
+	 *            the order being placed with the broker
 	 */
 	@Override
 	public void placeOrder(MarketSellOrder order) {
 		marketOrders.enqueue(order);
-		
-		
+
 	}
 
 	/**
 	 * Place an order with the broker.
 	 * 
-	 * @param the
-	 *            order being placed with the broker
+	 * @param order
+	 *            the order being placed with the broker
 	 * @throws BrokerException
 	 *             if unable to place order
 	 */
@@ -331,8 +323,8 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	/**
 	 * Place an order with the broker.
 	 * 
-	 * @param the
-	 *            order being placed with the broker
+	 * @param order
+	 *            the order being placed with the broker
 	 * @throws BrokerException
 	 *             if unable to place order
 	 */

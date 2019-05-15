@@ -1,11 +1,7 @@
 package edu.uw.nrs.broker;
 
 import java.util.Comparator;
-import java.util.function.BiPredicate;
 import java.util.function.Consumer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import edu.uw.ext.framework.broker.OrderManager;
 import edu.uw.ext.framework.broker.OrderQueue;
@@ -20,8 +16,7 @@ import edu.uw.ext.framework.order.StopSellOrder;
  *
  */
 public class OrderManagerImpl implements OrderManager {
-	private static final Logger log = LoggerFactory.getLogger(OrderManagerImpl.class.getName());
-
+	/** The Stock name */
 	private String stockTickerSymbol;
 
 	/** Queue for stop buy orders */

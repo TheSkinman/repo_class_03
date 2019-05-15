@@ -1,25 +1,22 @@
 package edu.uw.nrs.broker;
 
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.TreeSet;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import edu.uw.ext.framework.broker.OrderQueue;
+import edu.uw.ext.framework.order.Order;
 
 /**
  * A simple OrderQueue implementation backed by a TreeSet.
  * 
  * @author Norman Skinner (skinman@uw.edu)
- * @param <E>
- * @param <T>
+ * @param <E> the type of order contained in the queue
+ * @param <T> the dispatch threshold type
  *
  */
-public final class OrderQueueImpl<T, E extends edu.uw.ext.framework.order.Order> extends Object
-		implements edu.uw.ext.framework.broker.OrderQueue<T, E> {
-	private static final Logger log = LoggerFactory.getLogger(OrderQueueImpl.class.getName());
+public final class OrderQueueImpl<T, E extends Order> extends Object implements OrderQueue<T, E> {
 
 	private TreeSet<E> queue;
 	private T threshold;
@@ -35,9 +32,7 @@ public final class OrderQueueImpl<T, E extends edu.uw.ext.framework.order.Order>
 	 *            the dispatch filter used to control dispatching from this queue
 	 */
 	public OrderQueueImpl(T threshold, BiPredicate<T, E> filter) {
-		queue = new TreeSet<>();
-		this.threshold = threshold;
-		this.filter = filter;
+		this(threshold, filter, Comparator.naturalOrder());
 	}
 
 	/**
