@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.TreeSet;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.concurrent.locks.ReentrantLock;
 
 import edu.uw.ext.framework.broker.OrderQueue;
 import edu.uw.ext.framework.order.Order;
@@ -12,12 +13,16 @@ import edu.uw.ext.framework.order.Order;
  * A simple OrderQueue implementation backed by a TreeSet.
  * 
  * @author Norman Skinner (skinman@uw.edu)
- * @param <E> the type of order contained in the queue
- * @param <T> the dispatch threshold type
+ * @param <E>
+ *            the type of order contained in the queue
+ * @param <T>
+ *            the dispatch threshold type
  *
  */
-public final class OrderQueueImpl<T, E extends Order> extends Object implements OrderQueue<T, E> {
+public final class OrderQueueImpl<T, E extends Order> extends Object implements OrderQueue<T, E>, Runnable {
+	private final ReentrantLock lock;
 
+	private Thread dispatchingThread;
 	private TreeSet<E> queue;
 	private T threshold;
 	private BiPredicate<T, E> filter;
@@ -49,6 +54,7 @@ public final class OrderQueueImpl<T, E extends Order> extends Object implements 
 		queue = new TreeSet<>(cmp);
 		this.threshold = threshold;
 		this.filter = filter;
+		this.lock = new ReentrantLock();
 	}
 
 	/**
@@ -98,6 +104,20 @@ public final class OrderQueueImpl<T, E extends Order> extends Object implements 
 	 */
 	@Override
 	public void dispatchOrders() {
+
+		lock.lock();
+		try {
+			if (dispatchingThread == null) {
+				dispatchingThread = new Thread(this);
+			}
+				dispatchingThread.run();
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	@Override
+	public void run() {
 		E order = null;
 
 		while ((order = dequeue()) != null) {
