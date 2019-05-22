@@ -21,7 +21,7 @@ import edu.uw.ext.framework.dao.AccountDao;
  *
  */
 public class AccountManagerImpl implements AccountManager {
-	private static Logger logger = LoggerFactory.getLogger(AccountManagerImpl.class.getName());
+	private static Logger log = LoggerFactory.getLogger(AccountManagerImpl.class.getName());
 	private static final String ENCODING = "ISO-8859-1";
 	private static final String ALGORITHM = "SHA-256";
 
@@ -125,7 +125,7 @@ public class AccountManagerImpl implements AccountManager {
 	public boolean validateLogin(String accountName, String password) throws AccountException {
 		Account account = dao.getAccount(accountName);
 		if (account == null) {
-			logger.info("Account \"" + accountName + "\" was not located.");
+			log.info("Account \"" + accountName + "\" was not located.");
 			return false;
 		}
 

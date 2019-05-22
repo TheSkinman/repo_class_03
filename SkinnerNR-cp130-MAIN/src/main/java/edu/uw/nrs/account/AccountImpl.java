@@ -22,7 +22,7 @@ import edu.uw.ext.framework.order.Order;
  */
 @SuppressWarnings("serial")
 public class AccountImpl implements Account {
-	private static Logger logger = LoggerFactory.getLogger(AccountImpl.class.getName());
+	private static Logger log = LoggerFactory.getLogger(AccountImpl.class.getName());
 	private static final int MIN_ACCT_BALANCE = 100_000;
 	private static final int MIN_ACCT_NAME_LENGTH = 8;
 	private String name;
@@ -244,7 +244,7 @@ public class AccountImpl implements Account {
 		if (accountManager == null) {
 			accountManager = (AccountManagerImpl) m;
 		} else {
-			logger.warn("AccountManager has previously been set on this account.");
+			log.warn("AccountManager has previously been set on this account.");
 		}
 	}
 
@@ -264,7 +264,7 @@ public class AccountImpl implements Account {
 				accountManager.persist(this);
 			}
 		} catch (final AccountException ex) {
-			logger.error("Unable to persist the account.", ex);
+			log.error("Unable to persist the account.", ex);
 		}
 	}
 }

@@ -77,7 +77,7 @@ public class BrokerImpl implements Broker, ExchangeListener {
 	public BrokerImpl(String brokerName, AccountManager acctMgr, StockExchange exchg) {
 		this(brokerName, exchg, acctMgr);
 
-		marketOrders = new OrderQueueImpl<Boolean, Order>(exchg.isOpen(), (i, o) -> i);
+		marketOrders = new OrderQueueImpl<Boolean, Order>("marketOrder", exchg.isOpen(), (i, o) -> i);
 		marketOrders.setOrderProcessor(this::executeOrder);
 
 		// Create the Order Managers

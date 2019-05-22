@@ -47,11 +47,11 @@ public class OrderManagerImpl implements OrderManager {
 		this(stockTickerSymbol);
 
 		// Setup BUY ORDER queue
-		stopBuyOrderQueue = new OrderQueueImpl<>(0, (t, o) -> o.getPrice() <= t,
+		stopBuyOrderQueue = new OrderQueueImpl<>("BUY_queue-" + stockTickerSymbol, 0, (t, o) -> o.getPrice() <= t,
 				Comparator.comparing(StopBuyOrder::getPrice).thenComparing(StopBuyOrder::compareTo));
 
 		// Setup SELL ORDER queue
-		stopSellOrderQueue = new OrderQueueImpl<>(0, (t, o) -> o.getPrice() >= t,
+		stopSellOrderQueue = new OrderQueueImpl<>("SELL_queue-" + stockTickerSymbol, 0, (t, o) -> o.getPrice() >= t,
 				Comparator.comparing(StopSellOrder::getPrice).reversed().thenComparing(StopSellOrder::compareTo));
 
 		stopBuyOrderQueue.setThreshold(price);
