@@ -25,7 +25,7 @@ import edu.uw.ext.framework.order.Order;
  */
 public final class OrderQueueImpl<T, E extends Order> extends Object implements OrderQueue<T, E>, Runnable {
 	private static final Logger log = LoggerFactory.getLogger(OrderQueueImpl.class.getName());
-	
+
 	private final ReentrantLock queueLock = new ReentrantLock();
 	private final Condition dispatchCondition = queueLock.newCondition();
 	private final ReentrantLock processorLock = new ReentrantLock();
@@ -39,6 +39,8 @@ public final class OrderQueueImpl<T, E extends Order> extends Object implements 
 	/**
 	 * Constructor.
 	 * 
+	 * @param name
+	 *            the name of the thread
 	 * @param threshold
 	 *            the initial threshold
 	 * @param filter
@@ -51,6 +53,8 @@ public final class OrderQueueImpl<T, E extends Order> extends Object implements 
 	/**
 	 * Constructor.
 	 * 
+	 * @param name
+	 *            the name of the thread
 	 * @param threshold
 	 *            the initial threshold
 	 * @param filter
@@ -58,7 +62,8 @@ public final class OrderQueueImpl<T, E extends Order> extends Object implements 
 	 * @param cmp
 	 *            Comparator to be used for ordering
 	 */
-	public OrderQueueImpl(final String name, final T threshold, final BiPredicate<T, E> filter, final Comparator<E> cmp) {
+	public OrderQueueImpl(final String name, final T threshold, final BiPredicate<T, E> filter,
+			final Comparator<E> cmp) {
 		queue = new TreeSet<>(cmp);
 		this.threshold = threshold;
 		this.filter = filter;
@@ -140,7 +145,7 @@ public final class OrderQueueImpl<T, E extends Order> extends Object implements 
 	@Override
 	public void run() {
 		long startTime = 0l;
-		
+
 		while (true) {
 
 			E order = null;
@@ -162,7 +167,7 @@ public final class OrderQueueImpl<T, E extends Order> extends Object implements 
 			try {
 				if (orderProcessor != null) {
 					orderProcessor.accept(order);
-					long endTime   = System.currentTimeMillis();
+					long endTime = System.currentTimeMillis();
 					long totalTime = (endTime - startTime);
 					log.info("processThread [{}], processTime: {} ms.", Thread.currentThread().getName(), totalTime);
 				}
