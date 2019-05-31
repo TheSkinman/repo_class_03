@@ -53,31 +53,30 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 
 
 		public void run() {
-			log.info("start mr thread");
+			log.info("Starting client MULTICAST reading thread.");
 			InetAddress multicastAddress = null;
 			try {
 				multicastAddress = InetAddress.getByName(eventIpAddress);
 			} catch (UnknownHostException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				log.error("Unknown Host while starting the client multicast reading thread.", e1);
 			}
-			
-			
 			
 			byte[] buf = new byte[256];
 			try (MulticastSocket clientSocket = new MulticastSocket(eventPort);){
-
 				clientSocket.joinGroup(multicastAddress);
 				
 				while (true) {
 					DatagramPacket packet = new DatagramPacket(buf, buf.length);
 					clientSocket.receive(packet);
-					
 					String received = new String(buf, 0, buf.length);
 					if ("end".equals(received)) {
 						break;
 					}
-					System.out.println("Client -=> " + received);
+					
+					// Handle the incoming event
+					here
+
+					
 				}
 				clientSocket.leaveGroup(multicastAddress);
 				clientSocket.close();
@@ -85,7 +84,7 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 
 			}
 		}
-	}, "mr - thread");
+	}, "MulticastReader - thread");
 
 	/** The command socket. */
 	private Socket cmdSocket;

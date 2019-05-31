@@ -25,8 +25,7 @@ public class TestStuff {
 		ExchangeNetworkProxy enp = new ExchangeNetworkProxy("230.0.0.1", 4446, "eeee", 123);
 //		enp.run();
 		
-		
-		ena.testIt();
+	
 		
 		
 	}

@@ -68,7 +68,7 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 		this.multicastIP = multicastIP; 
 		this.multicastPort = multicastPort;  
 		this.commandPort = commandPort;
-
+		this.exchng.addExchangeListener(this);
 		
 	}
 
@@ -92,8 +92,13 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	 */
 	@Override
 	public void exchangeOpened(ExchangeEvent event) {
-		// TODO Auto-generated method stub
-
+		try {
+			multicast(ProtocolConstants.OPEN_EVNT);
+		} catch (IOException e) {
+			log.error("Encountered an IO Exception while multicating the opening of the market.", e);
+		} catch (InterruptedException e) {
+			log.error("Encountered an Interrupted Exception while multicating the opening of the market.", e);
+		}
 	}
 
 	/**
@@ -106,32 +111,14 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	 */
 	@Override
 	public void exchangeClosed(ExchangeEvent event) {
-		
-	}
-	
-	public void testIt() {
-		log.info("TESTIT - statring...");
 		try {
-
-			for (int i = 0; i < 11; i++) {
-				multicast("Counting = [" + i + "]");
-				System.out.println("Counting = [" + i + "]");
-				Thread.sleep(2000);
-			}
-			
-			multicast("end");
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			multicast(ProtocolConstants.CLOSED_EVNT);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Encountered an IO Exception while multicating the closing of the market.", e);
+		} catch (InterruptedException e) {
+			log.error("Encountered an Interrupted Exception while multicating the closing of the market.", e);
 		}
-		
-
 	}
-	
-	
 
 	/**
 	 * Processes price change events.
@@ -143,11 +130,22 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	 */
 	@Override
 	public void priceChanged(ExchangeEvent event) {
-		// TODO Auto-generated method stub
-
+		try {
+			String eventPriceChangeMsg = String.format("%1$s%2$s%3$s%2$s%4$d",
+					ProtocolConstants.PRICE_CHANGE_EVNT,
+					ProtocolConstants.ELEMENT_DELIMITER,
+					event.getTicker(),
+					event.getPrice());
+			multicast(eventPriceChangeMsg);
+		} catch (IOException e) {
+			log.error("Encountered an IO Exception while multicating the closing of the market.", e);
+		} catch (InterruptedException e) {
+			log.error("Encountered an Interrupted Exception while multicating the closing of the market.", e);
+		}
 	}
 
 	private void multicast(String multicastMessage) throws IOException, InterruptedException {
+		log.info("Multicating: " + multicastMessage);
 		InetAddress multicastAddress = InetAddress.getByName(multicastIP);
 		try (DatagramSocket serverSocket = new DatagramSocket()) {
 			byte[] buf = multicastMessage.getBytes();
