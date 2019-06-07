@@ -1,13 +1,9 @@
 package edu.uw.nrs.exchange;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import static edu.uw.nrs.exchange.ProtocolConstants.CLOSED_EVNT;
+import static edu.uw.nrs.exchange.ProtocolConstants.OPEN_EVNT;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -15,11 +11,12 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import edu.uw.ext.framework.exchange.ExchangeAdapter;
 import edu.uw.ext.framework.exchange.ExchangeEvent;
 import edu.uw.ext.framework.exchange.StockExchange;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Provides a network interface to an exchange.
@@ -29,25 +26,26 @@ import org.slf4j.LoggerFactory;
  */
 public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	private static final Logger log = LoggerFactory.getLogger(ExchangeNetworkAdapter.class.getName());
-	
+
 	/** The Stock Exchange to be used */
 	private StockExchange exchng;
-	
+
 	/** the EVENT/MULTICAST ip address used to propagate price changes */
 	private String multicastIP;
 
 	/** The EVENT/MULTICAST port used to propagate price changes. */
 	private int multicastPort;
+	
+	
+	// for killing it . This just is the thread firerer
+	private Thread commandListener;
 
+	/** The COMMAND port for listening for commands. */
+	private int commandPort;
 
-
-    /** The COMMAND port for listening for commands. */
-    private int commandPort;
-    
 	/** The COMMAND socket. */
-    private ServerSocket commandSock;	
-    
-    
+	private ServerSocket commandSock;
+	
 	/**
 	 * Constructor
 	 * 
@@ -62,14 +60,56 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	 * @throws UnknownHostException
 	 *             if unable to resolve multicast IP address
 	 */
-	public ExchangeNetworkAdapter(StockExchange exchng, String multicastIP, int multicastPort, int commandPort)
+	public ExchangeNetworkAdapter( final StockExchange exchng,
+								   final String multicastIP,
+								   final int multicastPort, 
+								   final int commandPort)
 			throws UnknownHostException {
 		this.exchng = exchng;
-		this.multicastIP = multicastIP; 
-		this.multicastPort = multicastPort;  
-		this.commandPort = commandPort;
 		this.exchng.addExchangeListener(this);
+		this.commandPort = commandPort;
+
+		commandListener = new Thread(new CommandListener(commandPort, exchng));
+		commandListener.start();
+		log.info("set command listener to run");
 		
+		this.multicastIP = multicastIP;
+		this.multicastPort = multicastPort;
+		
+		
+//		new Multicast
+//		
+//		make datagramand multicast inetaddress
+//		
+//		
+//		add timeToLive = 
+//
+//		commandListener.start();
+//		
+//		
+//		ExecutorService  deded = ExecutorService
+//		
+//		On the command listener, on terminate change listening = false
+//		try (ServerSocket localServSock )
+//			servsco = localSock
+//			while(listening)
+//		
+//		commandListener = new CommandListener eeerf.execute()
+//		Executors.newSin
+//		
+//		tru on the printwriter for flushing
+//		
+//		
+//		
+//		COMMAN_HANDLER - writes and reads
+//		
+//		   realExchange.isOpen() ? OPEN_STATE : CLOSED_STATE;
+//		
+//				
+//				execute trade returns zero if market is closed
+//				
+//				Optional<StockQuote> 
+//		
 	}
 
 	/**
@@ -78,6 +118,12 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	@Override
 	public void close() throws Exception {
 		// TODO Auto-generated method stub
+		
+//		1. kill listener
+		commandListener.stop();
+//		2. remove listeners
+		this.exchng.removeExchangeListener(this);
+//		3. kill socket
 
 	}
 
@@ -93,7 +139,7 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	@Override
 	public void exchangeOpened(ExchangeEvent event) {
 		try {
-			multicast(ProtocolConstants.OPEN_EVNT);
+			multicast(OPEN_EVNT);
 		} catch (IOException e) {
 			log.error("Encountered an IO Exception while multicating the opening of the market.", e);
 		} catch (InterruptedException e) {
@@ -112,7 +158,7 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	@Override
 	public void exchangeClosed(ExchangeEvent event) {
 		try {
-			multicast(ProtocolConstants.CLOSED_EVNT);
+			multicast(CLOSED_EVNT);
 		} catch (IOException e) {
 			log.error("Encountered an IO Exception while multicating the closing of the market.", e);
 		} catch (InterruptedException e) {
@@ -131,11 +177,8 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	@Override
 	public void priceChanged(ExchangeEvent event) {
 		try {
-			String eventPriceChangeMsg = String.format("%1$s%2$s%3$s%2$s%4$d",
-					ProtocolConstants.PRICE_CHANGE_EVNT,
-					ProtocolConstants.ELEMENT_DELIMITER,
-					event.getTicker(),
-					event.getPrice());
+			String eventPriceChangeMsg = String.format("%1$s%2$s%3$s%2$s%4$d", ProtocolConstants.PRICE_CHANGE_EVNT,
+					ProtocolConstants.ELEMENT_DELIMITER, event.getTicker(), event.getPrice());
 			multicast(eventPriceChangeMsg);
 		} catch (IOException e) {
 			log.error("Encountered an IO Exception while multicating the closing of the market.", e);
@@ -144,16 +187,27 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 		}
 	}
 
+	/**
+	 * Send out the multicast message.
+	 * 
+	 * @param multicastMessage
+	 *            the message to send out
+	 * @throws IOException
+	 *             if there is an IO exception
+	 * @throws InterruptedException
+	 *             if there is an interruption during the multicast message being
+	 *             sent out
+	 */
 	private void multicast(String multicastMessage) throws IOException, InterruptedException {
 		log.info("Multicating: " + multicastMessage);
 		InetAddress multicastAddress = InetAddress.getByName(multicastIP);
-		try (DatagramSocket serverSocket = new DatagramSocket()) {
+		try (DatagramSocket commandSock = new DatagramSocket()) {
 			byte[] buf = multicastMessage.getBytes();
-			
+
 			DatagramPacket packet = new DatagramPacket(buf, buf.length, multicastAddress, multicastPort);
-			serverSocket.send(packet);
-			System.out.println("Server sent packet with msg: " + multicastMessage);
-            Thread.sleep(500);
+			commandSock.send(packet);
+			Thread.sleep(500);
 		}
-	}	
+	}
+
 }

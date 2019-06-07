@@ -1,22 +1,23 @@
 package edu.uw.nrs.exchange;
 
-import java.io.BufferedInputStream;
+import static edu.uw.nrs.exchange.ProtocolConstants.ENCODING;
+import static edu.uw.nrs.exchange.ProtocolConstants.GET_TICKERS_CMD;
+import static edu.uw.nrs.exchange.ProtocolConstants.ELEMENT_DELIMITER;
+import static edu.uw.nrs.exchange.ProtocolConstants.GET_QUOTE_CMD;
+import static edu.uw.nrs.exchange.ProtocolConstants.GET_STATE_CMD;
+import static edu.uw.nrs.exchange.ProtocolConstants.INVALID_STOCK;
+
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.ServerSocket;
+import java.io.Reader;
+import java.io.Writer;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.Optional;
-
-import javax.swing.event.EventListenerList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,50 +50,10 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	private String eventIpAddress;
 	private int eventPort;
 
-	Thread multicastReceiver = new Thread(new Runnable() {
+	private NetEventProcessor netEventProcessor;
 
-
-		public void run() {
-			log.info("Starting client MULTICAST reading thread.");
-			InetAddress multicastAddress = null;
-			try {
-				multicastAddress = InetAddress.getByName(eventIpAddress);
-			} catch (UnknownHostException e1) {
-				log.error("Unknown Host while starting the client multicast reading thread.", e1);
-			}
-			
-			byte[] buf = new byte[256];
-			try (MulticastSocket clientSocket = new MulticastSocket(eventPort);){
-				clientSocket.joinGroup(multicastAddress);
-				
-				while (true) {
-					DatagramPacket packet = new DatagramPacket(buf, buf.length);
-					clientSocket.receive(packet);
-					String received = new String(buf, 0, buf.length);
-					if ("end".equals(received)) {
-						break;
-					}
-					
-					// Handle the incoming event
-					here
-
-					
-				}
-				clientSocket.leaveGroup(multicastAddress);
-				clientSocket.close();
-			} catch (Exception e) {
-
-			}
-		}
-	}, "MulticastReader - thread");
-
-	/** The command socket. */
-	private Socket cmdSocket;
-	/** The command printwriter. */
-	private PrintWriter cmdWriter;
-
-	/** The EVENT listener. */
-	private EventListenerList listenerList = new EventListenerList();
+	private String cmdIpAddress;
+	private int cmdPort;
 
 	/**
 	 * Constructor.
@@ -107,67 +68,24 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 *            the address the exchange accepts request on
 	 */
 	public ExchangeNetworkProxy(String eventIpAddress, int eventPort, String cmdIpAddress, int cmdPort) {
+		// Store the command address and port.
+		this.cmdIpAddress = cmdIpAddress;
+		this.cmdPort = cmdPort;
 
-		// // Initialize the COMMAND socket.
-		// try {
-		// cmdSocket = new Socket(cmdIpAddress, cmdPort);
-		// } catch (UnknownHostException e) {
-		// log.error("Unknown Host Exception when trying to create the COMMAND socket.",
-		// e);
-		// } catch (IOException e) {
-		// log.error("IO Exception when trying to create the COMMAND socket.", e);
-		// }
-		// OutputStream cmdOS = null;
-		// try {
-		// cmdOS = cmdSocket.getOutputStream();
-		// } catch (IOException e) {
-		// log.error("IO Exception when trying to get the COMMAND output stream.", e);
-		// }
-		// cmdWriter = new PrintWriter(new OutputStreamWriter(cmdOS), true);
+		// Store and start up EVENTS
+		netEventProcessor = new NetEventProcessor(eventIpAddress, eventPort);
+		Thread netEventProcessorHandle = new Thread(netEventProcessor);
+		try {
+			netEventProcessorHandle.join();
+			netEventProcessorHandle.start();
+		} catch (InterruptedException e) {
+			log.error("error = ", e);
+		}
+		
 
-		// Initialize the EVENT socket.
-		// try {
-		// eventSocket = new Socket(eventIpAddress, eventPort);
-		// log.info("Event socket connected.");
-		//
-		//
-		//
-		// } catch (UnknownHostException e) {
-		// log.error("Unknown Host Exception when trying to create the EVENT socket.",
-		// e);
-		// } catch (IOException e) {
-		// log.error("IO Exception when trying to create the EVENT socket.", e);
-		// }
-
-		this.eventIpAddress = eventIpAddress;
-		this.eventPort = eventPort;
-
-		multicastReceiver.start();
+		
+		log.info("ok on the client");
 	}
-
-	// public void run() {
-	// try {
-	// eventInput = new BufferedReader(new
-	// InputStreamReader(eventSocket.getInputStream()));
-	// String line = null;
-	//
-	// log.info("NetEventProcessor connected and waiting for event...");
-	// while ((line = eventInput.readLine()) != null && eventSocket != null &&
-	// !eventSocket.isClosed() && eventInput != null) {
-	// log.info("Raw EVENT receiveed -=> " + line);
-	// }
-	// } catch (IOException ex) {
-	// System.err.println("Server error: " + ex);
-	// } finally {
-	// if (eventSocket != null) {
-	// try {
-	// eventSocket.close();
-	// } catch (IOException ioex) {
-	// System.err.println("Error closing EVENT socket. " + ioex);
-	// }
-	// }
-	// }
-	// }
 
 	/**
 	 * The state of the exchange.
@@ -179,6 +97,7 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	@Override
 	public boolean isOpen() {
 		// TODO Auto-generated method stub
+		log.info("--==>\n--==>\n--==> isOpen ! ! ! \n--==>\n--==>\n");
 		return false;
 	}
 
@@ -192,8 +111,10 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 */
 	@Override
 	public String[] getTickers() {
-		String tester = ProtocolConstants.GET_TICKERS_CMD;
-		return null;
+		log.debug("Starting to getTickers()...");
+		String response = sendTcpCmd(GET_TICKERS_CMD);
+		log.debug("getTickers() return string = -> {} <-" + response);
+		return response.split(ELEMENT_DELIMITER);
 	}
 
 	/**
@@ -208,8 +129,23 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 */
 	@Override
 	public Optional<StockQuote> getQuote(String ticker) {
-		// TODO Auto-generated method stub
-		return null;
+		log.debug("Starting getQuote({})...", ticker);
+		final String cmd = String.join(ELEMENT_DELIMITER, GET_QUOTE_CMD, ticker);
+		String response = sendTcpCmd(cmd);
+		log.debug("getQuote() return string = -> {} <-" + response);
+		int price = INVALID_STOCK;
+		
+		try {
+			price = Integer.parseInt(response);
+		} catch (NumberFormatException e) {
+			log.error("Unable to convert the price of [{}] returned for [{}]", price, ticker, e);
+		}
+		
+		if (price >= 0) {
+			return Optional.ofNullable(new StockQuote(ticker, price));
+		} else {
+			return Optional.<StockQuote>empty();
+		}
 	}
 
 	/**
@@ -224,7 +160,16 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 */
 	@Override
 	public int executeTrade(Order order) {
-		// TODO Auto-generated method stub
+		log.info("--==>\n--==>\n--==> executeTrade ! ! ! \n--==>\n--==>\n");
+
+//		// EXECUTE_TRADE_CMD:BUY_ORDER|SELL_ORDER:account_id:symbol:shares
+//
+//		String test = ProtocolConstants.EXECUTE_TRADE_CMD;
+//		order.getClass();
+//		order.getAccountId();
+//		order.getStockTicker();
+//		order.getNumberOfShares();
+
 		return 0;
 	}
 
@@ -239,7 +184,7 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 */
 	@Override
 	public void addExchangeListener(ExchangeListener l) {
-		listenerList.add(ExchangeListener.class, l);
+		netEventProcessor.addExchangeListener​(l);
 	}
 
 	/**
@@ -253,7 +198,41 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 */
 	@Override
 	public void removeExchangeListener(ExchangeListener l) {
-		listenerList.remove(ExchangeListener.class, l);
+		netEventProcessor.removeExchangeListener​(l);
+	}
+
+	private String sendTcpCmd(final String cmd) {
+		log.info("Starting to send the command {} over TCP.", cmd);
+		PrintWriter printWriter = null;
+		String response = null;
+		BufferedReader br = null;
+
+		try (Socket cmdSocket = new Socket(cmdIpAddress, cmdPort);) {
+
+			final OutputStream outStrm = cmdSocket.getOutputStream();
+			final Writer wrt = new OutputStreamWriter(outStrm, ENCODING);
+			printWriter = new PrintWriter(wrt, true);
+			log.info("writer created");
+			
+			final InputStream inStrm = cmdSocket.getInputStream();
+			final Reader rdr = new InputStreamReader(inStrm, ENCODING);
+			br = new BufferedReader(rdr);
+			log.info("reader created");
+			
+			log.info("writing");
+			printWriter.println(cmd);
+			
+			log.info("reading");
+			response = br.readLine();
+			
+			log.info("back[{}]", response );
+			
+			log.info("done");
+		} catch (IOException e) {
+			log.error("IO Exception when trying to create the COMMAND socket.", e);
+		}
+
+		return response;
 	}
 
 }
