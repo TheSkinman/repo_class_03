@@ -2,6 +2,8 @@ package edu.uw.nrs.exchange;
 
 import static edu.uw.nrs.exchange.ProtocolConstants.CLOSED_EVNT;
 import static edu.uw.nrs.exchange.ProtocolConstants.OPEN_EVNT;
+import static edu.uw.nrs.exchange.ProtocolConstants.ELEMENT_DELIMITER;
+import static edu.uw.nrs.exchange.ProtocolConstants.ENCODING;
 import static edu.uw.nrs.exchange.ProtocolConstants.PRICE_CHANGE_EVNT;
 import static edu.uw.nrs.exchange.ProtocolConstants.PRICE_CHANGE_EVNT_PRICE_ELEMENT;
 import static edu.uw.nrs.exchange.ProtocolConstants.PRICE_CHANGE_EVNT_TICKER_ELEMENT;
@@ -63,20 +65,24 @@ public class NetEventProcessor implements Runnable {
 			log.error("Unknown Host while starting the client multicast reading thread.", e);
 		}
 
-		byte[] buf = new byte[256];
 		try (MulticastSocket clientSocket = new MulticastSocket(eventPort);) {
 			clientSocket.joinGroup(multicastAddress);
 
+			final byte[] buf = new byte[256];
+			final DatagramPacket packet = new DatagramPacket(buf, buf.length);
+			
 			while (!clientSocket.isClosed()) {
-				DatagramPacket packet = new DatagramPacket(buf, buf.length);
 				clientSocket.receive(packet);
-				final String receivedEvent = new String(buf, 0, buf.length);
+				
+				final String receivedEvent = new String(packet.getData(), 0, packet.getLength(), ENCODING);
+
+				log.debug("receivedEvent = " + receivedEvent);
 				if ("end".equals(receivedEvent)) {
 					break;
 				}
 
 				// Handle the incoming event
-				final String[] eventArray = receivedEvent.trim().split(":");
+				final String[] eventArray = receivedEvent.trim().split(ELEMENT_DELIMITER);
 				final String eventCommand = eventArray[0];
 
 				switch (eventCommand) {

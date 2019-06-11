@@ -1,8 +1,11 @@
 package edu.uw.nrs.exchange;
 
+import static edu.uw.nrs.exchange.ProtocolConstants.BUY_ORDER;
+import static edu.uw.nrs.exchange.ProtocolConstants.SELL_ORDER;
 import static edu.uw.nrs.exchange.ProtocolConstants.ENCODING;
 import static edu.uw.nrs.exchange.ProtocolConstants.GET_TICKERS_CMD;
 import static edu.uw.nrs.exchange.ProtocolConstants.ELEMENT_DELIMITER;
+import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD;
 import static edu.uw.nrs.exchange.ProtocolConstants.GET_QUOTE_CMD;
 import static edu.uw.nrs.exchange.ProtocolConstants.GET_STATE_CMD;
 import static edu.uw.nrs.exchange.ProtocolConstants.INVALID_STOCK;
@@ -18,6 +21,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.net.Socket;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import edu.uw.ext.framework.exchange.ExchangeListener;
 import edu.uw.ext.framework.exchange.StockExchange;
 import edu.uw.ext.framework.exchange.StockQuote;
+import edu.uw.ext.framework.order.BuyOrder;
 import edu.uw.ext.framework.order.Order;
 
 /**
@@ -41,19 +46,21 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 
 	/** The event socket. */
 	private Socket eventSocket;
+	
 	/** The event printwriter. */
 	private PrintWriter eventWriter;
 
 	// private DataInputStream eventInput = null;
 	private BufferedReader eventInput = null;
-
-	private String eventIpAddress;
-	private int eventPort;
-
-	private NetEventProcessor netEventProcessor;
-
 	private String cmdIpAddress;
 	private int cmdPort;
+
+
+	
+	private String eventIpAddress;
+	private int eventPort;
+	private NetEventProcessor netEventProcessor;
+
 
 	/**
 	 * Constructor.
@@ -74,17 +81,7 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 
 		// Store and start up EVENTS
 		netEventProcessor = new NetEventProcessor(eventIpAddress, eventPort);
-		Thread netEventProcessorHandle = new Thread(netEventProcessor);
-		try {
-			netEventProcessorHandle.join();
-			netEventProcessorHandle.start();
-		} catch (InterruptedException e) {
-			log.error("error = ", e);
-		}
-		
-
-		
-		log.info("ok on the client");
+		Executors.newSingleThreadExecutor().execute(netEventProcessor);
 	}
 
 	/**
@@ -96,9 +93,10 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 */
 	@Override
 	public boolean isOpen() {
-		// TODO Auto-generated method stub
-		log.info("--==>\n--==>\n--==> isOpen ! ! ! \n--==>\n--==>\n");
-		return false;
+		log.debug("Starting to isOpen()...");
+		final String response = sendTcpCmd(GET_STATE_CMD);
+		log.debug("isOpen() return string = -> {} <-" + response);
+		return response.equalsIgnoreCase("OPEN");
 	}
 
 	/**
@@ -112,7 +110,7 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	@Override
 	public String[] getTickers() {
 		log.debug("Starting to getTickers()...");
-		String response = sendTcpCmd(GET_TICKERS_CMD);
+		final String response = sendTcpCmd(GET_TICKERS_CMD);
 		log.debug("getTickers() return string = -> {} <-" + response);
 		return response.split(ELEMENT_DELIMITER);
 	}
@@ -131,18 +129,18 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	public Optional<StockQuote> getQuote(String ticker) {
 		log.debug("Starting getQuote({})...", ticker);
 		final String cmd = String.join(ELEMENT_DELIMITER, GET_QUOTE_CMD, ticker);
-		String response = sendTcpCmd(cmd);
-		log.debug("getQuote() return string = -> {} <-" + response);
+		final String response = sendTcpCmd(cmd);
+		log.debug("getQuote() return string = -> {} <-", response);
 		int price = INVALID_STOCK;
-		
+
 		try {
 			price = Integer.parseInt(response);
 		} catch (NumberFormatException e) {
 			log.error("Unable to convert the price of [{}] returned for [{}]", price, ticker, e);
 		}
-		
+
 		if (price >= 0) {
-			return Optional.ofNullable(new StockQuote(ticker, price));
+			return Optional.of(new StockQuote(ticker, price));
 		} else {
 			return Optional.<StockQuote>empty();
 		}
@@ -160,17 +158,23 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 */
 	@Override
 	public int executeTrade(Order order) {
-		log.info("--==>\n--==>\n--==> executeTrade ! ! ! \n--==>\n--==>\n");
 
-//		// EXECUTE_TRADE_CMD:BUY_ORDER|SELL_ORDER:account_id:symbol:shares
-//
-//		String test = ProtocolConstants.EXECUTE_TRADE_CMD;
-//		order.getClass();
-//		order.getAccountId();
-//		order.getStockTicker();
-//		order.getNumberOfShares();
-
-		return 0;
+		// EXECUTE_TRADE_CMD:BUY_ORDER|SELL_ORDER:account_id:symbol:shares
+		final String order_type = order.isBuyOrder() ? BUY_ORDER : SELL_ORDER;
+		final String account_id = order.getAccountId();
+		final String symbol = order.getStockTicker();
+		final String shares = String.valueOf(order.getNumberOfShares());
+		final String cmd = String.join(ELEMENT_DELIMITER, EXECUTE_TRADE_CMD, order_type, account_id, symbol, shares);
+		final String response = sendTcpCmd(cmd);
+		int returnPrice = 0;
+		
+		try {
+			returnPrice = Integer.parseInt(response);
+		} catch (NumberFormatException e) {
+			log.error("number error", e);
+		}
+		
+		return returnPrice;
 	}
 
 	/**
@@ -183,7 +187,7 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 *            the listener to add
 	 */
 	@Override
-	public void addExchangeListener(ExchangeListener l) {
+	public synchronized void addExchangeListener(final ExchangeListener l) {
 		netEventProcessor.addExchangeListener​(l);
 	}
 
@@ -197,37 +201,29 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 *            the listener to remove
 	 */
 	@Override
-	public void removeExchangeListener(ExchangeListener l) {
+	public synchronized void removeExchangeListener(final ExchangeListener l) {
 		netEventProcessor.removeExchangeListener​(l);
 	}
 
 	private String sendTcpCmd(final String cmd) {
-		log.info("Starting to send the command {} over TCP.", cmd);
+		log.debug("Starting to send the command {} over TCP.", cmd);
 		PrintWriter printWriter = null;
 		String response = null;
 		BufferedReader br = null;
 
 		try (Socket cmdSocket = new Socket(cmdIpAddress, cmdPort);) {
-
-			final OutputStream outStrm = cmdSocket.getOutputStream();
-			final Writer wrt = new OutputStreamWriter(outStrm, ENCODING);
-			printWriter = new PrintWriter(wrt, true);
-			log.info("writer created");
+			log.info(String.format("Connected to server: %s:%d", cmdSocket.getLocalAddress(), cmdSocket.getLocalPort()));
 			
 			final InputStream inStrm = cmdSocket.getInputStream();
 			final Reader rdr = new InputStreamReader(inStrm, ENCODING);
 			br = new BufferedReader(rdr);
-			log.info("reader created");
-			
-			log.info("writing");
+
+			final OutputStream outStrm = cmdSocket.getOutputStream();
+			final Writer wrt = new OutputStreamWriter(outStrm, ENCODING);
+			printWriter = new PrintWriter(wrt, true);
+
 			printWriter.println(cmd);
-			
-			log.info("reading");
 			response = br.readLine();
-			
-			log.info("back[{}]", response );
-			
-			log.info("done");
 		} catch (IOException e) {
 			log.error("IO Exception when trying to create the COMMAND socket.", e);
 		}

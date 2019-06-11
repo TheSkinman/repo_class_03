@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +35,11 @@ public class CommandListener implements Runnable {
 	/** Number of threads to use in the executor pool */
 	private int MAX_T = 10;
 
-	/** */
-	private ExecutorService executor = Executors.newFixedThreadPool(MAX_T);
-
+	/** Executor used to execute the client requests */
+	private ExecutorService executor = Executors.newCachedThreadPool();
+	
 	/** If set to false the listener will terminate. */
-	public boolean listening;
+	public boolean listening = true;
 
 	/**
 	 * Constructor.
@@ -51,7 +52,6 @@ public class CommandListener implements Runnable {
 	public CommandListener(final int commandPort, final StockExchange realExchange) {
 		this.commandPort = commandPort;
 		this.realExchange = realExchange;
-		listening = true;
 	}
 
 	/**
@@ -60,17 +60,17 @@ public class CommandListener implements Runnable {
 	 */
 	@Override
 	public void run() {
-		log.info("Shhh... listening for commands on port " + commandPort);
+		log.debug("Shhh... listening for commands on port " + commandPort);
 		try (ServerSocket listenSocket = new ServerSocket(commandPort)) {
 			commandSock = listenSocket;
-			log.info("11323 hearing=" + listening);
+			log.debug("Server Socket hearing =" + listening);
 			while (listening) {
 				Socket clientSocket = null;
 
 				try {
-					log.info("waiting for a connection...");
+					log.debug("waiting for a connection...");
 					clientSocket = commandSock.accept();
-					//log.info("Now connected to: {}:{}", clientSocket.getLocalAddress(), clientSocket.getLocalPort());
+					log.debug(String.format("CONNECTED to address [%s] on port [%d]", clientSocket.getInetAddress().toString(), clientSocket.getPort()));
 				} catch (final SocketException e) {
 					if (commandSock != null && !commandSock.isClosed()) {
 						log.error("Problem encountered while trying to accept the client socket.", e);
@@ -81,10 +81,6 @@ public class CommandListener implements Runnable {
 					continue;
 				}
 
-				// Hand work off to an enslaved thread that must do our bidding less be punished
-				log.warn("fire exe");
-				
-				//new Thread(new CommandHandler(clientSocket, realExchange)).run();
 				executor.execute(new CommandHandler(clientSocket, realExchange));
 			}
 		} catch (IOException ex) {
@@ -98,12 +94,28 @@ public class CommandListener implements Runnable {
 	 * Terminates this thread gracefully.
 	 */
 	public void terminate() {
-		if (commandSock != null) {
+		listening = false;
+		
+		try {
+			if (commandSock != null && !commandSock.isClosed()) {
+				commandSock.close();
+			}
 			try {
 				commandSock.close();
-			} catch (IOException ioex) {
-				log.error("Error closing server socket. " + ioex);
+				if (!executor.isShutdown()) {
+					executor.shutdownNow();
+					executor.awaitTermination(1l, TimeUnit.SECONDS);
+				}
+				
+				
+			} catch (IOException e) {
+				log.error("Error closing server socket. " + e);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
+		} catch (IOException e) {
+			log.error("Error closing server socket. " + e);
 		}
 	}
 }
