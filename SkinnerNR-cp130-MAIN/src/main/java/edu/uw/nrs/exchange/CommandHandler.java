@@ -1,14 +1,27 @@
 package edu.uw.nrs.exchange;
 
+import static edu.uw.nrs.exchange.ProtocolConstants.BUY_ORDER;
+import static edu.uw.nrs.exchange.ProtocolConstants.CLOSED_STATE;
+import static edu.uw.nrs.exchange.ProtocolConstants.ELEMENT_DELIMITER;
+import static edu.uw.nrs.exchange.ProtocolConstants.ENCODING;
+import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD;
+import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD_ACCOUNT_ELEMENT;
+import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD_SHARES_ELEMENT;
+import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD_TICKER_ELEMENT;
+import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD_TYPE_ELEMENT;
+import static edu.uw.nrs.exchange.ProtocolConstants.GET_QUOTE_CMD;
+import static edu.uw.nrs.exchange.ProtocolConstants.GET_STATE_CMD;
+import static edu.uw.nrs.exchange.ProtocolConstants.GET_TICKERS_CMD;
+import static edu.uw.nrs.exchange.ProtocolConstants.INVALID_STOCK;
+import static edu.uw.nrs.exchange.ProtocolConstants.OPEN_STATE;
+
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.io.Writer;
 import java.net.Socket;
 import java.util.Optional;
@@ -21,21 +34,6 @@ import edu.uw.ext.framework.exchange.StockQuote;
 import edu.uw.ext.framework.order.MarketBuyOrder;
 import edu.uw.ext.framework.order.MarketSellOrder;
 import edu.uw.ext.framework.order.Order;
-
-import static edu.uw.nrs.exchange.ProtocolConstants.ELEMENT_DELIMITER;
-import static edu.uw.nrs.exchange.ProtocolConstants.ENCODING;
-import static edu.uw.nrs.exchange.ProtocolConstants.GET_STATE_CMD;
-import static edu.uw.nrs.exchange.ProtocolConstants.GET_TICKERS_CMD;
-import static edu.uw.nrs.exchange.ProtocolConstants.GET_QUOTE_CMD;
-import static edu.uw.nrs.exchange.ProtocolConstants.OPEN_STATE;
-import static edu.uw.nrs.exchange.ProtocolConstants.CLOSED_STATE;
-import static edu.uw.nrs.exchange.ProtocolConstants.BUY_ORDER;
-import static edu.uw.nrs.exchange.ProtocolConstants.INVALID_STOCK;
-import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD;
-import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD_ACCOUNT_ELEMENT;
-import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD_SHARES_ELEMENT;
-import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD_TICKER_ELEMENT;
-import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD_TYPE_ELEMENT;
 
 /**
  * An instance of this class is dedicated to executing commands received from
@@ -79,8 +77,6 @@ public class CommandHandler implements Runnable {
 			final OutputStream outStr = sock.getOutputStream();
 			final Writer wrtr = new OutputStreamWriter(outStr);
 			final PrintWriter out = new PrintWriter(wrtr, true);
-			//final PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
-
 			
 			final String line = in.readLine();
 			log.debug("line=" + line);
@@ -98,6 +94,7 @@ public class CommandHandler implements Runnable {
 				final String marketState = realExchange.isOpen() ? OPEN_STATE : CLOSED_STATE;
 				log.debug("market state is: " + marketState);
 				out.write(marketState);
+				out.flush();
 				break;
 
 			case GET_TICKERS_CMD:
@@ -106,6 +103,7 @@ public class CommandHandler implements Runnable {
 				final String returnTickers = String.join(ELEMENT_DELIMITER, allTickers);
 				log.debug("we have the tickers: " + returnTickers);
 				out.write(returnTickers);
+				out.flush();
 				log.debug("wrote the tickers.");
 				break;
 			
@@ -119,8 +117,10 @@ public class CommandHandler implements Runnable {
 					String quotePrice = String.valueOf(response.get().getPrice()); 
 					log.debug("quote from exchange: " + quotePrice);
 					out.write(quotePrice);
+					out.flush();
 				} else {
 					out.write(INVALID_STOCK);
+					out.flush();
 				}
 				
 				log.debug("wrote the tickers.");
@@ -149,16 +149,13 @@ public class CommandHandler implements Runnable {
 				
 				final int price = realExchange.executeTrade(order);
 				out.write(String.valueOf(price));
+				out.flush();
 				
 				break;
 				
 			default:
 				break;
 			}
-			
-			
-			out.close();
-			in.close();
 		} catch (IOException e) {
 			log.error("An IO Exception: ", e);
 
@@ -166,12 +163,10 @@ public class CommandHandler implements Runnable {
 			try {
 				sock.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				log.error("An IO-2 Exception: ", e);
 			}
 		}
 		
 		log.debug("this cmdHdlr is done.");
 	}
-
 }

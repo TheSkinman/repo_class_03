@@ -1,14 +1,14 @@
 package edu.uw.nrs.exchange;
 
 import static edu.uw.nrs.exchange.ProtocolConstants.BUY_ORDER;
-import static edu.uw.nrs.exchange.ProtocolConstants.SELL_ORDER;
-import static edu.uw.nrs.exchange.ProtocolConstants.ENCODING;
-import static edu.uw.nrs.exchange.ProtocolConstants.GET_TICKERS_CMD;
 import static edu.uw.nrs.exchange.ProtocolConstants.ELEMENT_DELIMITER;
+import static edu.uw.nrs.exchange.ProtocolConstants.ENCODING;
 import static edu.uw.nrs.exchange.ProtocolConstants.EXECUTE_TRADE_CMD;
 import static edu.uw.nrs.exchange.ProtocolConstants.GET_QUOTE_CMD;
 import static edu.uw.nrs.exchange.ProtocolConstants.GET_STATE_CMD;
+import static edu.uw.nrs.exchange.ProtocolConstants.GET_TICKERS_CMD;
 import static edu.uw.nrs.exchange.ProtocolConstants.INVALID_STOCK;
+import static edu.uw.nrs.exchange.ProtocolConstants.SELL_ORDER;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import edu.uw.ext.framework.exchange.ExchangeListener;
 import edu.uw.ext.framework.exchange.StockExchange;
 import edu.uw.ext.framework.exchange.StockQuote;
-import edu.uw.ext.framework.order.BuyOrder;
 import edu.uw.ext.framework.order.Order;
 
 /**
@@ -44,23 +43,14 @@ import edu.uw.ext.framework.order.Order;
 public class ExchangeNetworkProxy extends Object implements StockExchange {
 	private static final Logger log = LoggerFactory.getLogger(ExchangeNetworkProxy.class.getName());
 
-	/** The event socket. */
-	private Socket eventSocket;
-	
-	/** The event printwriter. */
-	private PrintWriter eventWriter;
-
-	// private DataInputStream eventInput = null;
-	private BufferedReader eventInput = null;
+	/** IP Address for the commands */
 	private String cmdIpAddress;
+
+	/** The port for the commands */
 	private int cmdPort;
 
-
-	
-	private String eventIpAddress;
-	private int eventPort;
+	/** The runner for control. */
 	private NetEventProcessor netEventProcessor;
-
 
 	/**
 	 * Constructor.
@@ -167,13 +157,14 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 		final String cmd = String.join(ELEMENT_DELIMITER, EXECUTE_TRADE_CMD, order_type, account_id, symbol, shares);
 		final String response = sendTcpCmd(cmd);
 		int returnPrice = 0;
-		
+
 		try {
 			returnPrice = Integer.parseInt(response);
 		} catch (NumberFormatException e) {
 			log.error("number error", e);
 		}
-		
+		log.info("Price returned from order execution: [{}]", returnPrice);
+
 		return returnPrice;
 	}
 
@@ -188,7 +179,7 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 */
 	@Override
 	public synchronized void addExchangeListener(final ExchangeListener l) {
-		netEventProcessor.addExchangeListener​(l);
+		netEventProcessor.addExchangeListener(l);
 	}
 
 	/**
@@ -202,7 +193,7 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 	 */
 	@Override
 	public synchronized void removeExchangeListener(final ExchangeListener l) {
-		netEventProcessor.removeExchangeListener​(l);
+		netEventProcessor.removeExchangeListener(l);
 	}
 
 	private String sendTcpCmd(final String cmd) {
@@ -212,15 +203,16 @@ public class ExchangeNetworkProxy extends Object implements StockExchange {
 		BufferedReader br = null;
 
 		try (Socket cmdSocket = new Socket(cmdIpAddress, cmdPort);) {
-			log.info(String.format("Connected to server: %s:%d", cmdSocket.getLocalAddress(), cmdSocket.getLocalPort()));
-			
-			final InputStream inStrm = cmdSocket.getInputStream();
-			final Reader rdr = new InputStreamReader(inStrm, ENCODING);
-			br = new BufferedReader(rdr);
+			log.debug(
+					String.format("Connected to server: %s:%d", cmdSocket.getLocalAddress(), cmdSocket.getLocalPort()));
 
 			final OutputStream outStrm = cmdSocket.getOutputStream();
 			final Writer wrt = new OutputStreamWriter(outStrm, ENCODING);
 			printWriter = new PrintWriter(wrt, true);
+
+			final InputStream inStrm = cmdSocket.getInputStream();
+			final Reader rdr = new InputStreamReader(inStrm, ENCODING);
+			br = new BufferedReader(rdr);
 
 			printWriter.println(cmd);
 			response = br.readLine();

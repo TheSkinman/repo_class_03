@@ -29,15 +29,12 @@ public class CommandListener implements Runnable {
 	/** The port to listen for connections on */
 	private int commandPort;
 
-	/**  */
+	/** The command server socket. */
 	private ServerSocket commandSock;
-	
-	/** Number of threads to use in the executor pool */
-	private int MAX_T = 10;
 
 	/** Executor used to execute the client requests */
 	private ExecutorService executor = Executors.newCachedThreadPool();
-	
+
 	/** If set to false the listener will terminate. */
 	public boolean listening = true;
 
@@ -70,13 +67,14 @@ public class CommandListener implements Runnable {
 				try {
 					log.debug("waiting for a connection...");
 					clientSocket = commandSock.accept();
-					log.debug(String.format("CONNECTED to address [%s] on port [%d]", clientSocket.getInetAddress().toString(), clientSocket.getPort()));
+					log.debug(String.format("CONNECTED to address [%s] on port [%d]",
+							clientSocket.getInetAddress().toString(), clientSocket.getPort()));
 				} catch (final SocketException e) {
 					if (commandSock != null && !commandSock.isClosed()) {
 						log.error("Problem encountered while trying to accept the client socket.", e);
 					}
 				}
-				
+
 				if (clientSocket == null) {
 					continue;
 				}
@@ -95,7 +93,7 @@ public class CommandListener implements Runnable {
 	 */
 	public void terminate() {
 		listening = false;
-		
+
 		try {
 			if (commandSock != null && !commandSock.isClosed()) {
 				commandSock.close();
@@ -106,8 +104,7 @@ public class CommandListener implements Runnable {
 					executor.shutdownNow();
 					executor.awaitTermination(1l, TimeUnit.SECONDS);
 				}
-				
-				
+
 			} catch (IOException e) {
 				log.error("Error closing server socket. " + e);
 			} catch (InterruptedException e) {

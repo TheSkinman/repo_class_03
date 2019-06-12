@@ -59,7 +59,7 @@ public class JsonAccountDao implements AccountDao {
 		AccountImpl account = null;
 		File inFile = new File(ACCT_DIR, accountName + ".json");
 		if (!inFile.exists()) {
-			log.error("Account for \"{}\" does not exist.", accountName);
+			log.debug ("Account for \"{}\" does not exist.", accountName);
 			return null;
 		}
 		

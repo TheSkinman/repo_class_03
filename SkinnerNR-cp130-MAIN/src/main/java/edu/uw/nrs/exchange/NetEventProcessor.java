@@ -1,9 +1,10 @@
 package edu.uw.nrs.exchange;
 
 import static edu.uw.nrs.exchange.ProtocolConstants.CLOSED_EVNT;
-import static edu.uw.nrs.exchange.ProtocolConstants.OPEN_EVNT;
+import static edu.uw.nrs.exchange.ProtocolConstants.CMD_ELEMENT;
 import static edu.uw.nrs.exchange.ProtocolConstants.ELEMENT_DELIMITER;
 import static edu.uw.nrs.exchange.ProtocolConstants.ENCODING;
+import static edu.uw.nrs.exchange.ProtocolConstants.OPEN_EVNT;
 import static edu.uw.nrs.exchange.ProtocolConstants.PRICE_CHANGE_EVNT;
 import static edu.uw.nrs.exchange.ProtocolConstants.PRICE_CHANGE_EVNT_PRICE_ELEMENT;
 import static edu.uw.nrs.exchange.ProtocolConstants.PRICE_CHANGE_EVNT_TICKER_ELEMENT;
@@ -32,7 +33,10 @@ import edu.uw.ext.framework.exchange.ExchangeListener;
 public class NetEventProcessor implements Runnable {
 	private static final Logger log = LoggerFactory.getLogger(NetEventProcessor.class.getName());
 
+	/** EVENT IP Address */
 	private String eventIpAddress;
+	
+	/** EVENT Port */
 	private int eventPort;
 
 	/** The EVENT listener. */
@@ -68,22 +72,18 @@ public class NetEventProcessor implements Runnable {
 		try (MulticastSocket clientSocket = new MulticastSocket(eventPort);) {
 			clientSocket.joinGroup(multicastAddress);
 
-			final byte[] buf = new byte[256];
+			final byte[] buf = new byte[1000];
 			final DatagramPacket packet = new DatagramPacket(buf, buf.length);
 			
 			while (!clientSocket.isClosed()) {
 				clientSocket.receive(packet);
 				
 				final String receivedEvent = new String(packet.getData(), 0, packet.getLength(), ENCODING);
-
 				log.debug("receivedEvent = " + receivedEvent);
-				if ("end".equals(receivedEvent)) {
-					break;
-				}
 
 				// Handle the incoming event
 				final String[] eventArray = receivedEvent.trim().split(ELEMENT_DELIMITER);
-				final String eventCommand = eventArray[0];
+				final String eventCommand = eventArray[CMD_ELEMENT];
 
 				switch (eventCommand) {
 				case CLOSED_EVNT:
@@ -102,7 +102,7 @@ public class NetEventProcessor implements Runnable {
 									Integer.parseInt(eventArray[PRICE_CHANGE_EVNT_PRICE_ELEMENT])));
 					break;
 				default:
-					log.error("Event not recognized in the multievent [{}].", eventArray[0]);
+					log.error("Event not recognized in the multievent [{}].", eventArray[CMD_ELEMENT]);
 					break;
 				}
 			}
@@ -119,7 +119,7 @@ public class NetEventProcessor implements Runnable {
 	 * @param l
 	 *            the listener to add
 	 */
-	public void addExchangeListener​(ExchangeListener l) {
+	public void addExchangeListener(ExchangeListener l) {
 		listenerList.add(ExchangeListener.class, l);
 	}
 
@@ -129,7 +129,7 @@ public class NetEventProcessor implements Runnable {
 	 * @param l
 	 *            the listener to remove
 	 */
-	public void removeExchangeListener​(ExchangeListener l) {
+	public void removeExchangeListener(ExchangeListener l) {
 		listenerList.remove(ExchangeListener.class, l);
 	}
 

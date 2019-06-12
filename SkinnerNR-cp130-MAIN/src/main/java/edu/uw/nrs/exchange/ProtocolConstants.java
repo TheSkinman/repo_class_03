@@ -2,37 +2,37 @@ package edu.uw.nrs.exchange;
 
 /**
  * Constants for the command strings composing the exchange protocol. The
- * protocol supports events and commands. <br/>
- * Events are one way messages sent from the exchange to the broker(s). <br/>
- * The protocol supports the following events: <br/>
- * Event: [OPEN_EVNT]<br/>
- * - <br/>
- * Event: [CLOSED_EVNT] <br/>
- * - <br/>
+ * protocol supports events and commands. <br>
+ * Events are one way messages sent from the exchange to the broker(s). <br>
+ * The protocol supports the following events: <br>
+ * Event: [OPEN_EVNT]<br>
+ * - <br>
+ * Event: [CLOSED_EVNT] <br>
+ * - <br>
  * Event: [PRICE_CHANGE_EVNT][ELEMENT_DELIMITER]symbol[ELEMENT_DELIMITER]price
- * <br/>
- * <br/>
+ * <br>
+ * <br>
  * Commands conform to a request/response model where requests are sent from a
  * broker and the result is a response sent to the requesting broker from the
- * exchange. <br/>
- * The protocol supports the following commands: <br/>
+ * exchange. <br>
+ * The protocol supports the following commands: <br>
  * <p>
- * Request: [GET_STATE_CMD] <br/>
- * Response: [OPEN_STATE]|[CLOSED_STATE] <br/>
- * - <br/>
- * Request: [GET_TICKERS_CMD] <br/>
- * Response: symbol[ELEMENT_DELIMITER]symbol... <br/>
- * - <br/>
- * Request: [GET_QUOTE_CMD][ELEMENT_DELIMITER]symbol <br/>
- * Response: price | INVALID_STOCK <br/>
- * - <br/>
- * Request: [EXECUTE_TRADE_CMD][ELEMENT_DELIMITER][BUY_ORDER]|[SELL_ORDER]<br/>
- * [ELEMENT_DELIMITER]account_id[ELEMENT_DELIMITER]<br/>
- * symbol[ELEMENT_DELIMITER]shares <br/>
+ * Request: [GET_STATE_CMD] <br>
+ * Response: [OPEN_STATE]|[CLOSED_STATE] <br>
+ * - <br>
+ * Request: [GET_TICKERS_CMD] <br>
+ * Response: symbol[ELEMENT_DELIMITER]symbol... <br>
+ * - <br>
+ * Request: [GET_QUOTE_CMD][ELEMENT_DELIMITER]symbol <br>
+ * Response: price | INVALID_STOCK <br>
+ * - <br>
+ * Request: [EXECUTE_TRADE_CMD][ELEMENT_DELIMITER][BUY_ORDER]|[SELL_ORDER]<br>
+ * [ELEMENT_DELIMITER]account_id[ELEMENT_DELIMITER]<br>
+ * symbol[ELEMENT_DELIMITER]shares <br>
  * Response: execution_price
  * </p>
- * <br/>
- * <br/>
+ * <br>
+ * <br>
  * 
  * @author Norman Skinner (skinman@uw.edu)
  *

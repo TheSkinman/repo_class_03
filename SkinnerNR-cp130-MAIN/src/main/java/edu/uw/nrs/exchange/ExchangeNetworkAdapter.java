@@ -1,18 +1,15 @@
 package edu.uw.nrs.exchange;
 
 import static edu.uw.nrs.exchange.ProtocolConstants.CLOSED_EVNT;
-import static edu.uw.nrs.exchange.ProtocolConstants.OPEN_EVNT;
 import static edu.uw.nrs.exchange.ProtocolConstants.ELEMENT_DELIMITER;
+import static edu.uw.nrs.exchange.ProtocolConstants.OPEN_EVNT;
 import static edu.uw.nrs.exchange.ProtocolConstants.PRICE_CHANGE_EVNT;
-
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.concurrent.Executors;
@@ -36,25 +33,16 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 	/** The Stock Exchange to be used */
 	private StockExchange exchng;
 
-	/** the EVENT/MULTICAST ip address used to propagate price changes */
-	private String multicastIP;
-
-	/** The EVENT/MULTICAST port used to propagate price changes. */
-	private int multicastPort;
-	
-	
-	// for killing it . This just is the thread firerer
-//	private Thread commandListener;
+	/** The COMMAND listener for commands. */
 	private CommandListener commandListener;
 
-	/** The COMMAND port for listening for commands. */
-	private int commandPort;
-
-	/** The COMMAND socket. */
-	private ServerSocket commandSock;
-	
+	/** The EVENT socket. */
 	private DatagramSocket eventSocket;
+
+	/** The EVENT data packet for multicast. */
 	private DatagramPacket datagramPacket;
+
+	/** The time to live for threads. */
 	private int TTL = 300*1000;
 	
 	/**
@@ -76,32 +64,30 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 								   final int multicastPort, 
 								   final int commandPort)
 			throws UnknownHostException {
-		this.exchng = exchng;
 		
+		// Store the exchange and add listener
+		this.exchng = exchng;
+		this.exchng.addExchangeListener(this);
+
+		// Setup the Multicastbroadcaster
 		final InetAddress multicastAddress = InetAddress.getByName(multicastIP);
 		final byte[] buf = {};
-	
 		datagramPacket = new DatagramPacket(buf, buf.length, multicastAddress, multicastPort);
+		try {
+			eventSocket = new DatagramSocket();
+			eventSocket = new MulticastSocket();
+			eventSocket.setSoTimeout(TTL);
+		} catch (SocketException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		log.debug("Multicast broadcaster prepared...");
 		
-			try {
-				eventSocket = new DatagramSocket();
-				eventSocket = new MulticastSocket();
-				eventSocket.setSoTimeout(TTL);
-			} catch (SocketException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			//log ready to multicast
-		
-		this.exchng.addExchangeListener(this);
-		this.commandPort = commandPort;
-
-
+		// Setup and start the command listener 
 		commandListener = new CommandListener(commandPort, exchng);
 		Executors.newSingleThreadExecutor().execute(commandListener);
+		log.debug("Command Listener engaged...");
 	}
 
 	/**
@@ -206,5 +192,4 @@ public class ExchangeNetworkAdapter extends Object implements ExchangeAdapter {
 		datagramPacket.setData(buf, 0, buf.length);
 		eventSocket.send(datagramPacket);
 	}
-
 }
