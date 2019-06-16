@@ -84,22 +84,18 @@ public class PrivateMessageCodecImpl implements PrivateMessageCodec {
 		log.debug("recipientCertName = " + recipientCertName);
 
 		// 1. Generate a one-time use shared symmetric secret key
-		// slide 35
 		SecretKey secKey = generateAesSecretKey();
 
 		// 2. Encipher the the order data
 		// using the one-time use shared symmetric secret key
-		// slide 35
 		Cipher cipher = Cipher.getInstance(secKey.getAlgorithm());
 		cipher.init(Cipher.ENCRYPT_MODE, secKey);
 		ciphertext = cipher.doFinal(plaintext);
 
 		// 3. Obtain the bytes representing the one-time use shared symmetric secret key
-		// slide 35
 		byte[] secKeyBytes = secKey.getEncoded();
 
 		// 4. Retrieve the (broker's) public key from the provided truststore
-		// slide 30
 		KeyStore clientTrustStore = loadKeyStore(senderTrustStoreName, JCEKS, senderTrustStorePasswd);
 		Certificate cert = clientTrustStore.getCertificate(recipientCertName);
 		PublicKey pubKey = cert.getPublicKey();
@@ -111,13 +107,11 @@ public class PrivateMessageCodecImpl implements PrivateMessageCodec {
 		encipheredSharedKey = cipher.doFinal(secKeyBytes);
 
 		// 6. Retrieve the (client's) private key from the the provided keystore
-		// slide 29
 		KeyStore privateStore = loadKeyStore(senderKeyStoreName, JCEKS, senderKeyStorePasswd);
 		PrivateKey privateKey = (PrivateKey) privateStore.getKey(senderKeyName, senderKeyPasswd);
 
 		// 7. Sign the plaintext order data using the private key from the the provided
 		// keystore
-		// slide 29
 		Signature signer = Signature.getInstance("MD5withRSA");
 		signer.initSign(privateKey);
 		signer.update(plaintext);
@@ -199,7 +193,6 @@ public class PrivateMessageCodecImpl implements PrivateMessageCodec {
 
 		// 7. Verify the order data plaintext and signature using the public key from
 		// the truststore
-		// slide 30
 		Signature verifier = Signature.getInstance("MD5withRSA");
 		verifier.initVerify(publicKey);
 		verifier.update(plaintext);
