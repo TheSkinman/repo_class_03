@@ -3,10 +3,10 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.uw.nrs</groupId>
-	<artifactId>cp130-7</artifactId>
+	<artifactId>cp130-07</artifactId>
 	<packaging>war</packaging>
 	<version>1.0</version>
-	<name>cp130</name>
+	<name>StockQuote</name>
 
 	<properties>
 		<student>SkinnerNR</student>
@@ -23,6 +23,12 @@
 	</repositories>
 
 	<dependencies>
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.9</version>
+		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

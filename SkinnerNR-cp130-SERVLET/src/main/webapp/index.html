@@ -1,5 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<body>
-<h2>Hello World!</h2>
-</body>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>Courtesy Phrase Servlet</title>
+  </head>
+  <body>
+<a href="http://localhost:8080/StockQuote/StockQuoteServlet?symbol=goog&format=html">Google (html)</a>
+<p>
+<a href="http://localhost:8080/StockQuote/StockQuoteServlet?symbol=goog&format=json">Google (json)</a>
+<p>
+<a href="http://localhost:8080/StockQuote/StockQuoteServlet?symbol=goog&format=plain">Google (plain)</a>
+<p>
+<a href="http://localhost:8080/StockQuote/StockQuoteServlet?symbol=goog&format=xml">Google (xml)</a>
+
+<form id="get-phrase" action="http://localhost:8080/StockQuote/StockQuoteServlet" method="post">
+Stock Symbol:
+<select name=symbol size=1>
+  <option value=goog>Google
+  <option value=msft>Microsoft
+</select>
+<br>
+Format:
+<input type="radio" name="format" value="html">HTML
+<input type="radio" name="format" value="json" checked>JSON
+<input type="radio" name="format" value="plain">Plain
+<input type="radio" name="format" value="xml">XML
+<p>
+<input type="submit" name="submit_btn" value="Get Phrase">
+</form>
+
+  </body>
 </html>

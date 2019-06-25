@@ -1,35 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- <!DOCTYPE web-app PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 
-	2.3//EN" "http://java.sun.com/dtd/web-app_2_3.dtd" > <web-app> <display-name>Archetype 
-	Created Web Application</display-name> -->
-<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<web-app id="WebApp_ID" version="2.5"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns="http://java.sun.com/xml/ns/javaee"
 	xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
-	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
-http://java.sun.com/xml/ns/javaee/webapp_2_5.xsd"
-	id="WebApp_ID" version="2.5">
-	<display-name>Servlet Example</display-name>
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/webapp_2_5.xsd">
+	<display-name>Stock Quote Servlet</display-name>
+
 	<welcome-file-list>
 		<welcome-file>index.html</welcome-file>
-		<welcome-file>index.htm</welcome-file>
-		<welcome-file>index.jsp</welcome-file>
-		<welcome-file>default.html</welcome-file>
-		<welcome-file>default.htm</welcome-file>
-		<welcome-file>default.jsp</welcome-file>
 	</welcome-file-list>
+
+	<filter>
+		<description> </description>
+		<display-name>StockQuoteTransformer</display-name>
+		<filter-name>StockQuoteTransformer</filter-name>
+		<filter-class>edu.uw.nrs.web.StockQuoteTransformer</filter-class>
+		<init-param>
+			<param-name>htmlFormat</param-name>
+			<param-value>/formats/quote2html.html</param-value>
+		</init-param>
+		<init-param>
+			<param-name>jsonFormat</param-name>
+			<param-value>/formats/quote2json.json</param-value>
+		</init-param>
+		<init-param>
+			<param-name>plainFormat</param-name>
+			<param-value>/formats/quote2plain.txt</param-value>
+		</init-param>
+		<init-param>
+			<param-name>xmlFormat</param-name>
+			<param-value>/formats/quote2xml.xml</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>StockQuoteTransformer</filter-name>
+		<url-pattern>/StockQuoteServlet</url-pattern>
+	</filter-mapping>
+
 	<servlet>
 		<description></description>
-		<display-name>HelloWorld</display-name>
-		<servlet-name>HelloWorld</servlet-name>
-		<servlet-class>edu.uw.ext.servlet.HelloWorld</servlet-class>
+		<display-name>StockQuoteServlet</display-name>
+		<servlet-name>StockQuoteServlet</servlet-name>
+		<servlet-class>edu.uw.nrs.web.StockQuoteServlet</servlet-class>
 		<init-param>
-			<description>Greeting text</description>
-			<param-name>greeting</param-name>
-			<param-value>Howdy</param-value>
+			<description>The trade symbol of the stock to get a quote on.
+			</description>
+			<param-name>symbol</param-name>
+			<param-value>goog</param-value>
+		</init-param>
+		<init-param>
+			<description>Format of the data to be returned.</description>
+			<param-name>format</param-name>
+			<param-value>json</param-value>
 		</init-param>
 	</servlet>
 	<servlet-mapping>
-		<servlet-name>HelloWorld</servlet-name>
-		<url-pattern>/HelloWorld</url-pattern>
+		<servlet-name>StockQuoteServlet</servlet-name>
+		<url-pattern>/StockQuoteServlet</url-pattern>
 	</servlet-mapping>
 </web-app>
