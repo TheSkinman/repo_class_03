@@ -91,7 +91,7 @@ public class StockQuoteTransformer implements Filter {
             String readString = new String(bytes, "UTF8");
             return readString;
         } catch (IOException e) {
-            ctx.log("Error reading HTMP transform file.", e);
+            ctx.log("Error reading HTML transform file.", e);
         }
         return null;
 	}

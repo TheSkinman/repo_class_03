@@ -1,4 +1,4 @@
-package edu.uw.nrs.web;
+package web;
 
 public class QuoteTransformFilter {
 
